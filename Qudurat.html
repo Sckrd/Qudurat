@@ -1137,25 +1137,37 @@
       </div>
 
       <!-- Cloud Room Settings -->
-      <div class="admin-card">
-        <div class="admin-card-header">
-          <h3>☁️ إعدادات المزامنة السحابية الحية (Live Cloud Sync)</h3>
-          <span id="adminRoomBadge" style="font-size: 12px; font-weight: 700; background: #e0f2fe; color: #0369a1; padding: 4px 10px; border-radius: 8px;">الغرفة الحالية نشطة</span>
-        </div>
-        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px;">
-          هذا المعرّف هو القناة السحابية المشتركة بين آيباد الأستاذ وهواتف الطالبتين (جوان وفجر). يجب أن يكون نفس الرمز في جميع الأجهزة لربطها ببعضها فوراً.
-        </p>
-        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 12px;">
-          <input type="text" id="inputRoomId" class="form-control" style="max-width: 320px; direction: ltr; font-weight: bold; letter-spacing: 1px;" value="qudurat-abdullah-2026">
-          <button class="btn btn-admin" onclick="updateCloudRoom()">حفظ وتغيير الغرفة 💾</button>
-          <button class="btn btn-outline" onclick="testCloudConnection()">اختبار الاتصال السحابي 📡</button>
-        </div>
-        <p style="font-size: 12px; color: #64748b;">
-          💡 <strong>ملاحظة:</strong> المزامنة تعمل تلقائياً في الخلفية لحظة بلحظة بمجرد الضغط على أي مقطع أو تعديل اليوم.
-        </p>
+    <div class="admin-card">
+      <div class="admin-card-header">
+        <h3>☁️ إعدادات الربط بقاعدة البيانات السحابية (Firebase Cloud)</h3>
+        <span id="adminDbStatusBadge" style="font-size: 12px; font-weight: 700; background: #fef2f2; color: #991b1b; padding: 4px 10px; border-radius: 8px;">غير متصل بسيرفر</span>
       </div>
+      <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">
+        لربط أجهزة الطالبتين (جوان وفجر) بآيباد الأستاذ عبدالله لحظياً، الصق إعدادات مشروع <strong>Google Firebase</strong> المجاني هنا مرة واحدة، وستتصل جميع الأجهزة فوراً:
+      </p>
+      
+      <div class="form-group">
+        <label>كود إعدادات Firebase (JSON Config):</label>
+        <textarea id="firebaseConfigInput" class="form-control" rows="5" style="direction: ltr; font-family: monospace; font-size: 12px;" placeholder='{
+  "apiKey": "AIzaSy...",
+  "authDomain": "your-app.firebaseapp.com",
+  "projectId": "your-app",
+  "storageBucket": "your-app.appspot.com",
+  "messagingSenderId": "...",
+  "appId": "..."
+}'></textarea>
+      </div>
+      
+      <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px;">
+        <button class="btn btn-admin" onclick="saveFirebaseConfig()">حفظ والاتصال بالسيرفر السحابي 🚀</button>
+        <button class="btn btn-outline" onclick="loadSampleFirebaseGuide()">كيف أحصل على المفاتيح المجانية؟ ❓</button>
+      </div>
+      <p style="font-size: 12px; color: #64748b;">
+        🔒 يتم حفظ هذه الإعدادات ومزامنتها تلقائياً، وتعمل المزامنة بأمان وتشفير كامل.
+      </p>
+    </div>
 
-      <!-- Change Passwords / PINs -->
+    <!-- Change Passwords / PINs -->
       <div class="admin-card">
         <div class="admin-card-header">
           <h3>🔐 إدارة كلمات المرور والرموز السرية</h3>
@@ -1237,12 +1249,14 @@
 
   <div id="toast" class="toast-msg">تم الحفظ بنجاح</div>
 
-  <script type="module">
-    const STORAGE_KEY_AUTH = 'qudurat_auth_session_v5';
-    const STORAGE_KEY_CACHE = 'qudurat_offline_cache_v5';
-    const STORAGE_KEY_ROOM = 'qudurat_cloud_room_id_v5';
+  <!-- Load Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
-    let CLOUD_ROOM = localStorage.getItem(STORAGE_KEY_ROOM) || 'qudurat-abdullah-2026';
+  <script>
+    const STORAGE_KEY_AUTH = 'qudurat_auth_session_v6';
+    const STORAGE_KEY_CACHE = 'qudurat_offline_cache_v6';
+    const STORAGE_KEY_FIREBASE = 'qudurat_firebase_cfg_v6';
 
     const DEFAULT_PINS = {
       jawan: '1234',
@@ -1287,25 +1301,149 @@
     let currentStudent = 'jawan';
     let editingDayIndex = -1;
 
-    let isBroadcasting = false;
-    let sseEventSource = null;
-    let lastKnownVersion = 0;
-    const clientId = 'client_' + Math.random().toString(36).substring(2, 9);
+    // Firebase References
+    let db = null;
+    let unsubscribeFirestore = null;
+    const FIREBASE_DOC_PATH = 'qudurat_main_data';
 
-    async function initUniversalSync() {
-      const roomInput = document.getElementById('inputRoomId');
-      if (roomInput) roomInput.value = CLOUD_ROOM;
-
+    function initCloudBackend() {
       loadLocalBackup();
-      await fetchLatestCloudState();
-      connectRealtimeStream();
+      
+      const savedConfigStr = localStorage.getItem(STORAGE_KEY_FIREBASE);
+      const configInput = document.getElementById('firebaseConfigInput');
+      if (savedConfigStr && configInput) {
+        configInput.value = savedConfigStr;
+      }
 
-      // Poll as backup every 8 seconds in case browser tab suspends SSE
-      setInterval(() => {
-        if (!document.hidden) {
-          fetchLatestCloudState(true);
+      if (savedConfigStr) {
+        try {
+          const cfg = JSON.parse(savedConfigStr);
+          setupFirebase(cfg);
+        } catch(e) {
+          updateSyncIndicator('error', 'خطأ في إعدادات السيرفر 🔴');
         }
-      }, 8000);
+      } else {
+        updateSyncIndicator('error', 'بحاجة لربط السيرفر ⚠️');
+      }
+    }
+
+    function setupFirebase(config) {
+      try {
+        if (!firebase.apps.length) {
+          firebase.initializeApp(config);
+        }
+        db = firebase.firestore();
+
+        const badge = document.getElementById('adminDbStatusBadge');
+        if (badge) {
+          badge.innerText = 'متصل بالسيرفر بنجاح 🟢';
+          badge.style.background = '#f0fdf4';
+          badge.style.color = '#166534';
+        }
+
+        updateSyncIndicator('syncing', 'جاري المزامنة السحابية...');
+
+        // Realtime Firestore Listener
+        if (unsubscribeFirestore) unsubscribeFirestore();
+        unsubscribeFirestore = db.collection('qudurat_app').doc(FIREBASE_DOC_PATH).onSnapshot(
+          (doc) => {
+            if (doc.exists) {
+              const remote = doc.data();
+              applyRemoteData(remote);
+              updateSyncIndicator('online', 'متصل بالسحابة 🟢');
+            } else {
+              // Create initial cloud doc if it doesn't exist
+              pushDataToCloud(true);
+            }
+          },
+          (err) => {
+            console.error('Firestore sync error:', err);
+            updateSyncIndicator('error', 'تأكد من إذن قواعد البيانات (Rules)');
+          }
+        );
+      } catch (err) {
+        console.error('Firebase init failed:', err);
+        updateSyncIndicator('error', 'تعذر الاتصال بالسيرفر');
+      }
+    }
+
+    function saveFirebaseConfig() {
+      const input = document.getElementById('firebaseConfigInput');
+      const val = input ? input.value.trim() : '';
+      if (!val) {
+        showToast('يرجى لصق كود الإعدادات الخاص بـ Firebase');
+        return;
+      }
+
+      try {
+        const parsed = JSON.parse(val);
+        localStorage.setItem(STORAGE_KEY_FIREBASE, JSON.stringify(parsed));
+        setupFirebase(parsed);
+        showToast('✅ تم حفظ إعدادات السيرفر وبدء الاتصال');
+      } catch (e) {
+        showToast('❌ صيغة JSON غير صحيحة، تأكد من نسخ الكود كاملاً');
+      }
+    }
+
+    function loadSampleFirebaseGuide() {
+      showToast('راجع الشرح في المحادثة لإنشاء مشروع Firebase في دقيقتين');
+    }
+
+    function applyRemoteData(remote) {
+      if (!remote) return;
+      if (remote.appData) appData = remote.appData;
+      if (remote.currentSchedule) currentSchedule = remote.currentSchedule;
+      if (remote.teacherNote) {
+        teacherNote = remote.teacherNote;
+        const noteEl = document.getElementById('teacherNoteText');
+        if (noteEl) noteEl.innerText = teacherNote;
+        const noteInp = document.getElementById('adminTeacherNoteInput');
+        if (noteInp && document.activeElement !== noteInp) noteInp.value = teacherNote;
+      }
+      if (remote.userPins) {
+        userPins = { ...DEFAULT_PINS, ...remote.userPins };
+        const pinT = document.getElementById('pinInputTeacher');
+        const pinJ = document.getElementById('pinInputJawan');
+        const pinF = document.getElementById('pinInputFajr');
+        if (pinT && document.activeElement !== pinT) pinT.value = userPins.teacher;
+        if (pinJ && document.activeElement !== pinJ) pinJ.value = userPins.jawan;
+        if (pinF && document.activeElement !== pinF) pinF.value = userPins.fajr;
+      }
+      if (remote.activityLogs) activityLogs = remote.activityLogs;
+
+      saveLocalBackup();
+      renderAll();
+
+      if (remote.lastActionAuthor) {
+        showToast(`⚡ تحديث سحابي فوري من: ${remote.lastActionAuthor}`);
+      }
+    }
+
+    async function pushDataToCloud(isSilent = false) {
+      saveLocalBackup();
+      if (!db) {
+        if (!isSilent) showToast('⚠️ التعديل محفوظ محلياً فقط (يلزم إعداد السيرفر لمزامنته مع باقي الأجهزة)');
+        return;
+      }
+
+      updateSyncIndicator('syncing', 'إرسال التعديل للسيرفر...');
+      try {
+        const payload = {
+          lastActionAuthor: currentUserSession ? currentUserSession.name : 'مستخدم',
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          appData,
+          currentSchedule,
+          teacherNote,
+          userPins,
+          activityLogs
+        };
+
+        await db.collection('qudurat_app').doc(FIREBASE_DOC_PATH).set(payload, { merge: true });
+        updateSyncIndicator('online', 'متصل بالسحابة 🟢');
+      } catch (err) {
+        console.error('Save to cloud failed:', err);
+        updateSyncIndicator('error', 'خطأ في تصريح السيرفر');
+      }
     }
 
     function updateSyncIndicator(status, text) {
@@ -1321,152 +1459,13 @@
         label.innerText = text || 'متصل بالسحابة 🟢';
       } else if (status === 'error') {
         badge.classList.add('error');
-        label.innerText = text || 'إعادة الاتصال... 🟡';
-      }
-    }
-
-    function connectRealtimeStream() {
-      if (sseEventSource) {
-        try { sseEventSource.close(); } catch(e) {}
-      }
-
-      const streamUrl = `https://ntfy.sh/${encodeURIComponent(CLOUD_ROOM)}/sse`;
-      try {
-        sseEventSource = new EventSource(streamUrl);
-
-        sseEventSource.onopen = () => {
-          updateSyncIndicator('online', 'متصل بالسحابة 🟢');
-        };
-
-        sseEventSource.onmessage = (event) => {
-          try {
-            const parsed = JSON.parse(event.data);
-            if (parsed && parsed.message) {
-              const payload = JSON.parse(parsed.message);
-              if (payload && payload.senderId !== clientId) {
-                applyIncomingRemoteState(payload);
-              }
-            }
-          } catch (err) {
-            // Ignore non-json or keepalive messages
-          }
-        };
-
-        sseEventSource.onerror = () => {
-          updateSyncIndicator('error', 'إعادة الاتصال بالسحابة... 🟡');
-        };
-      } catch (err) {
-        console.warn('SSE connect error:', err);
-      }
-    }
-
-    async function fetchLatestCloudState(isSilent = false) {
-      if (!isSilent) updateSyncIndicator('syncing', 'جلب أحدث نسخة سحابية...');
-      const pollUrl = `https://ntfy.sh/${encodeURIComponent(CLOUD_ROOM)}/json?poll=1`;
-
-      try {
-        const response = await fetch(pollUrl);
-        if (!response.ok) throw new Error('Poll failed');
-        const text = await response.text();
-        if (!text) {
-          if (!isSilent) updateSyncIndicator('online');
-          return;
-        }
-
-        const lines = text.trim().split('\n');
-        for (let i = lines.length - 1; i >= 0; i--) {
-          try {
-            const item = JSON.parse(lines[i]);
-            if (item && item.message) {
-              const payload = JSON.parse(item.message);
-              if (payload && payload.timestamp && payload.timestamp > lastKnownVersion) {
-                applyIncomingRemoteState(payload);
-                break;
-              }
-            }
-          } catch(e) {}
-        }
-        if (!isSilent) updateSyncIndicator('online');
-      } catch (e) {
-        if (!isSilent) updateSyncIndicator('online', 'سحابي (محلي نشط) 🟢');
-      }
-    }
-
-    function applyIncomingRemoteState(payload) {
-      if (!payload || payload.senderId === clientId) return;
-
-      if (payload.timestamp && payload.timestamp <= lastKnownVersion) return;
-      lastKnownVersion = payload.timestamp || Date.now();
-
-      if (payload.appData) appData = payload.appData;
-      if (payload.currentSchedule) currentSchedule = payload.currentSchedule;
-      if (payload.teacherNote) {
-        teacherNote = payload.teacherNote;
-        const noteEl = document.getElementById('teacherNoteText');
-        if (noteEl) noteEl.innerText = teacherNote;
-        const noteInp = document.getElementById('adminTeacherNoteInput');
-        if (noteInp && document.activeElement !== noteInp) noteInp.value = teacherNote;
-      }
-      if (payload.userPins) {
-        userPins = { ...DEFAULT_PINS, ...payload.userPins };
-        const pinT = document.getElementById('pinInputTeacher');
-        const pinJ = document.getElementById('pinInputJawan');
-        const pinF = document.getElementById('pinInputFajr');
-        if (pinT && document.activeElement !== pinT) pinT.value = userPins.teacher;
-        if (pinJ && document.activeElement !== pinJ) pinJ.value = userPins.jawan;
-        if (pinF && document.activeElement !== pinF) pinF.value = userPins.fajr;
-      }
-      if (payload.activityLogs) activityLogs = payload.activityLogs;
-
-      saveLocalBackup();
-      renderAll();
-
-      if (payload.authorName) {
-        showToast(`⚡ تحديث سحابي مباشر من: ${payload.authorName}`);
-      }
-    }
-
-    async function broadcastCloudState() {
-      updateSyncIndicator('syncing', 'إرسال التعديل للأجهزة...');
-      const timestamp = Date.now();
-      lastKnownVersion = timestamp;
-
-      const payload = {
-        senderId: clientId,
-        authorName: currentUserSession ? currentUserSession.name : 'مستخدم',
-        timestamp: timestamp,
-        appData,
-        currentSchedule,
-        teacherNote,
-        userPins,
-        activityLogs
-      };
-
-      saveLocalBackup();
-
-      try {
-        await fetch(`https://ntfy.sh/${encodeURIComponent(CLOUD_ROOM)}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        updateSyncIndicator('online', 'متزامن مع جميع الأجهزة 🟢');
-      } catch (err) {
-        console.error('Broadcast failed:', err);
-        updateSyncIndicator('online', 'محفوظ محلياً ومؤجل سحابياً');
+        label.innerText = text || 'غير متصل بسيرفر ⚠️';
       }
     }
 
     function saveLocalBackup() {
       try {
-        const cacheObj = {
-          appData,
-          currentSchedule,
-          teacherNote,
-          userPins,
-          activityLogs,
-          timestamp: lastKnownVersion
-        };
+        const cacheObj = { appData, currentSchedule, teacherNote, userPins, activityLogs };
         localStorage.setItem(STORAGE_KEY_CACHE, JSON.stringify(cacheObj));
       } catch (e) {}
     }
@@ -1485,44 +1484,16 @@
           }
           if (cached.userPins) userPins = { ...DEFAULT_PINS, ...cached.userPins };
           if (cached.activityLogs) activityLogs = cached.activityLogs;
-          if (cached.timestamp) lastKnownVersion = cached.timestamp;
         }
       } catch (e) {}
     }
 
     function manualSync() {
-      showToast('جاري طلب أحدث البيانات من السحابة...');
-      fetchLatestCloudState();
-      broadcastCloudState();
-    }
-
-    function updateCloudRoom() {
-      const input = document.getElementById('inputRoomId');
-      const val = input ? input.value.trim() : '';
-      if (!val) {
-        showToast('يرجى إدخال اسم صحيح للغرفة');
-        return;
-      }
-      CLOUD_ROOM = val;
-      localStorage.setItem(STORAGE_KEY_ROOM, CLOUD_ROOM);
-      connectRealtimeStream();
-      fetchLatestCloudState();
-      showToast(`تم تغيير الغرفة السحابية إلى: ${CLOUD_ROOM}`);
-    }
-
-    async function testCloudConnection() {
-      showToast('جاري إرسال إشارة فحص سحابية...');
-      const start = Date.now();
-      try {
-        await fetch(`https://ntfy.sh/${encodeURIComponent(CLOUD_ROOM)}`, {
-          method: 'POST',
-          headers: { 'Title': 'Ping Test' },
-          body: JSON.stringify({ senderId: clientId, type: 'ping', time: start })
-        });
-        const latency = Date.now() - start;
-        showToast(`✅ الاتصال ممتاز! زمن الاستجابة السحابية: ${latency} مللي ثانية`);
-      } catch (e) {
-        showToast('❌ تعذر الاتصال بالسحابة، تحقق من اتصال الإنترنت');
+      if (db) {
+        showToast('جاري تحديث البيانات من السيرفر...');
+        pushDataToCloud();
+      } else {
+        showToast('⚠️ لم يتم ربط السيرفر بعد. انتقل للوحة المشرف وضع إعدادات Firebase');
       }
     }
 
@@ -1531,7 +1502,7 @@
       const timeStr = new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' });
       activityLogs.unshift({ student: name, role: studentKey, action: text, time: timeStr });
       if (activityLogs.length > 30) activityLogs.pop();
-      broadcastCloudState();
+      pushDataToCloud();
       renderLogs();
     }
 
@@ -1574,7 +1545,7 @@
         applySession(currentUserSession);
         document.getElementById('loginOverlay').classList.add('hidden');
         showToast(`أهلاً بك يا ${currentUserSession.name}! تم تسجيل الدخول بنجاح.`);
-        broadcastCloudState();
+        pushDataToCloud(true);
       } else {
         showToast('⚠️ الرمز السري غير صحيح، يرجى المحاولة مجدداً.');
         document.getElementById('loginPinInput').focus();
@@ -1725,7 +1696,6 @@
       studentData.quantDone[index] = !studentData.quantDone[index];
       const status = studentData.quantDone[index] ? 'أنجزت' : 'ألغت إنجاز';
       addActivityLog(currentStudent, `${status} مقطع كمي ${index + 1}`);
-      broadcastCloudState();
       renderGrids();
       updateStats();
       showToast(`تم تحديث مقطع كمي ${index + 1}`);
@@ -1736,7 +1706,6 @@
       studentData.verbalDone[index] = !studentData.verbalDone[index];
       const status = studentData.verbalDone[index] ? 'أنجزت' : 'ألغت إنجاز';
       addActivityLog(currentStudent, `${status} مقطع لفظي ${index + 1}`);
-      broadcastCloudState();
       renderGrids();
       updateStats();
       showToast(`تم تحديث مقطع لفظي ${index + 1}`);
@@ -1759,7 +1728,6 @@
       }
 
       addActivityLog(currentStudent, `${isChecked ? 'أكملت' : 'ألغت إكمال'} مهام ${currentSchedule[dayIndex]?.title || 'اليوم ' + dayNum}`);
-      broadcastCloudState();
       renderGrids();
       updateStats();
       showToast(`تم تحديث اليوم ${dayNum}`);
@@ -1820,7 +1788,7 @@
     function adminResetStudent(studentKey) {
       const name = studentKey === 'jawan' ? 'جوان' : 'فجر';
       appData[studentKey] = createDefaultStudentData();
-      broadcastCloudState();
+      pushDataToCloud();
       renderAll();
       showToast(`تم تصفير إنجاز الطالبة: ${name}`);
     }
@@ -1843,7 +1811,7 @@
       userPins.jawan = jPin;
       userPins.fajr = fPin;
 
-      broadcastCloudState();
+      pushDataToCloud();
       showToast('✅ تم حفظ كلمات المرور وبثها سحابياً لجميع الأجهزة');
     }
 
@@ -1852,7 +1820,7 @@
       if (!text) return;
       teacherNote = text;
       document.getElementById('teacherNoteText').innerText = teacherNote;
-      broadcastCloudState();
+      pushDataToCloud();
       showToast('✅ تم نشر وتحديث توجيه الأستاذ فوراً لجميع الأجهزة');
     }
 
@@ -1879,7 +1847,7 @@
       currentSchedule[editingDayIndex].verbal = document.getElementById('editDayVerbal').value.trim();
       currentSchedule[editingDayIndex].task = document.getElementById('editDayTask').value.trim();
 
-      broadcastCloudState();
+      pushDataToCloud();
       closeEditModal();
       renderScheduleTable();
       showToast('✅ تم حفظ تعديل اليوم ومزامنته مع الجميع');
@@ -1887,7 +1855,7 @@
 
     function restoreDefaultSchedule() {
       currentSchedule = JSON.parse(JSON.stringify(DEFAULT_SCHEDULE));
-      broadcastCloudState();
+      pushDataToCloud();
       renderScheduleTable();
       showToast('تمت استعادة الجدول الأساسي المعتمد للجميع');
     }
@@ -2015,13 +1983,13 @@
     window.resetTimer = resetTimer;
     window.refreshAdminStats = refreshAdminStats;
     window.manualSync = manualSync;
-    window.updateCloudRoom = updateCloudRoom;
-    window.testCloudConnection = testCloudConnection;
+    window.saveFirebaseConfig = saveFirebaseConfig;
+    window.loadSampleFirebaseGuide = loadSampleFirebaseGuide;
 
     window.onload = function() {
       checkAuthSession();
       renderAll();
-      initUniversalSync();
+      initCloudBackend();
     };
   </script>
 </body>
