@@ -1,0 +1,1730 @@
+```html
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>منصة وجدول مذاكرة القدرات - لوحة المشرف والطلاب</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #1e3a8a;
+      --primary-hover: #172554;
+      --secondary: #0d9488;
+      --accent: #f59e0b;
+      --admin-color: #4f46e5;
+      --bg-main: #f8fafc;
+      --card-bg: #ffffff;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --border-color: #e2e8f0;
+      --quant-color: #2563eb;
+      --verbal-color: #059669;
+      --danger: #ef4444;
+      --success: #10b981;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Tajawal', sans-serif;
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      line-height: 1.6;
+      padding: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .header-text h1 {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--primary);
+    }
+
+    .teacher-badge, .students-badge, .admin-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      margin-top: 6px;
+    }
+
+    .teacher-badge {
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+    }
+
+    .students-badge {
+      background: #fdf2f8;
+      color: #be185d;
+      border: 1px solid #fbcfe8;
+      margin-right: 6px;
+    }
+
+    .admin-badge {
+      background: #f5f3ff;
+      color: #6d28d9;
+      border: 1px solid #ddd6fe;
+      margin-right: 6px;
+    }
+
+    .user-session-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #ffffff;
+      padding: 12px 18px;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      margin-bottom: 16px;
+      font-size: 13.5px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    }
+
+    .user-info-tag {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .logout-btn {
+      background: #fee2e2;
+      color: #dc2626;
+      border: 1px solid #fca5a5;
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+
+    .logout-btn:hover {
+      background: #fecaca;
+    }
+
+    .student-selector {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #ffffff;
+      padding: 6px;
+      border-radius: 12px;
+      border: 1.5px solid var(--border-color);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+      margin-bottom: 20px;
+    }
+
+    .student-tab {
+      flex: 1;
+      padding: 12px 18px;
+      border: none;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: all 0.2s ease;
+      background: #f1f5f9;
+      color: #475569;
+    }
+
+    .student-tab.active-jawan {
+      background: linear-gradient(135deg, #ec4899, #db2777);
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(219, 39, 119, 0.25);
+    }
+
+    .student-tab.active-fajr {
+      background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(124, 58, 237, 0.25);
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-family: inherit;
+      font-size: 14px;
+      cursor: pointer;
+      border: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background-color: var(--primary);
+      color: #ffffff;
+    }
+
+    .btn-primary:hover {
+      background-color: var(--primary-hover);
+    }
+
+    .btn-admin {
+      background-color: var(--admin-color);
+      color: #ffffff;
+    }
+
+    .btn-admin:hover {
+      background-color: #4338ca;
+    }
+
+    .btn-outline {
+      background-color: #ffffff;
+      color: var(--primary);
+      border: 1.5px solid var(--primary);
+    }
+
+    .btn-danger {
+      background-color: #fee2e2;
+      color: #b91c1c;
+      border: 1px solid #f87171;
+    }
+
+    .btn-success {
+      background-color: #10b981;
+      color: #ffffff;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 16px 20px;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+
+    .stat-card.quant { border-right: 5px solid var(--quant-color); }
+    .stat-card.verbal { border-right: 5px solid var(--verbal-color); }
+    .stat-card.overall { border-right: 5px solid var(--accent); }
+
+    .stat-title {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .stat-value {
+      font-size: 24px;
+      font-weight: 800;
+      margin: 4px 0 8px;
+      color: var(--text-main);
+    }
+
+    .progress-bar-bg {
+      background: #e2e8f0;
+      border-radius: 999px;
+      height: 8px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      transition: width 0.3s ease;
+    }
+
+    .fill-quant { background-color: var(--quant-color); }
+    .fill-verbal { background-color: var(--verbal-color); }
+    .fill-overall { background-color: var(--accent); }
+
+    .tabs-nav {
+      display: flex;
+      gap: 8px;
+      background: #e2e8f0;
+      padding: 6px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      overflow-x: auto;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 10px 16px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 700;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      border-radius: 8px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .tab-btn.active {
+      background: #ffffff;
+      color: var(--primary);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+    }
+
+    .tab-btn.admin-tab {
+      color: var(--admin-color);
+      font-weight: 800;
+    }
+
+    .tab-btn.admin-tab.active {
+      background: #eef2ff;
+      color: var(--admin-color);
+    }
+
+    .tab-pane {
+      display: none;
+    }
+
+    .tab-pane.active {
+      display: block;
+    }
+
+    .schedule-card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+
+    .table-container {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: right;
+    }
+
+    th {
+      background: #1e293b;
+      color: #ffffff;
+      padding: 14px 16px;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    td {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 13.5px;
+      vertical-align: middle;
+    }
+
+    tr:hover {
+      background-color: #f8fafc;
+    }
+
+    .day-badge {
+      display: inline-block;
+      font-weight: 800;
+      color: var(--primary);
+      background: #e0e7ff;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 12.5px;
+    }
+
+    .badge-quant {
+      background: #dbeafe;
+      color: #1d4ed8;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 12px;
+    }
+
+    .badge-verbal {
+      background: #d1fae5;
+      color: #065f46;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 12px;
+    }
+
+    .action-checkbox {
+      width: 22px;
+      height: 22px;
+      accent-color: var(--primary);
+      cursor: pointer;
+      border-radius: 4px;
+    }
+
+    .video-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .video-chip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      background: #ffffff;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+
+    .video-chip.done {
+      background-color: #ecfdf5;
+      border-color: #a7f3d0;
+      color: #065f46;
+      text-decoration: line-through;
+    }
+
+    .admin-card {
+      background: #ffffff;
+      border: 1.5px solid #c7d2fe;
+      border-radius: 14px;
+      padding: 22px;
+      margin-bottom: 22px;
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.05);
+    }
+
+    .admin-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #e0e7ff;
+      padding-bottom: 12px;
+      margin-bottom: 16px;
+    }
+
+    .admin-card-header h3 {
+      color: #3730a3;
+      font-size: 18px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .compare-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .student-compare-box {
+      background: #f8fafc;
+      border-radius: 12px;
+      padding: 16px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .student-compare-box.jawan {
+      border-top: 4px solid #ec4899;
+    }
+
+    .student-compare-box.fajr {
+      border-top: 4px solid #8b5cf6;
+    }
+
+    .activity-log {
+      max-height: 250px;
+      overflow-y: auto;
+      background: #f8fafc;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      padding: 10px;
+      font-size: 12.5px;
+    }
+
+    .log-item {
+      padding: 8px 10px;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .log-item:last-child {
+      border-bottom: none;
+    }
+
+    .log-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      color: #334155;
+      margin-bottom: 6px;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+
+    .form-control:focus {
+      outline: none;
+      border-color: var(--admin-color);
+    }
+
+    .form-grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+    }
+
+    .teacher-note-banner {
+      background: #eff6ff;
+      border-right: 4px solid #3b82f6;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      font-size: 13.5px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .info-card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid var(--border-color);
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+
+    .tips-list {
+      padding-right: 20px;
+      font-size: 13.5px;
+      color: #334155;
+    }
+
+    .tips-list li {
+      margin-bottom: 8px;
+    }
+
+    .timer-container {
+      text-align: center;
+      padding: 12px 0;
+    }
+
+    .timer-display {
+      font-size: 44px;
+      font-weight: 800;
+      color: var(--primary);
+      letter-spacing: 2px;
+      margin: 10px 0;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .timer-controls {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .toast-msg {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #1e293b;
+      color: #ffffff;
+      padding: 12px 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      font-size: 13.5px;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.3s ease;
+      pointer-events: none;
+      z-index: 10000;
+    }
+
+    .toast-msg.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .login-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      padding: 16px;
+      transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+
+    .login-overlay.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .login-card {
+      background: #ffffff;
+      border-radius: 20px;
+      max-width: 440px;
+      width: 100%;
+      padding: 32px 28px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      text-align: center;
+      border: 1px solid #e2e8f0;
+      animation: modalFadeIn 0.3s ease;
+    }
+
+    @keyframes modalFadeIn {
+      from { transform: scale(0.95); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .login-icon-badge {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 16px;
+      background: linear-gradient(135deg, #1e3a8a, #2563eb);
+      color: #ffffff;
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 30px;
+      box-shadow: 0 8px 16px rgba(37, 99, 235, 0.25);
+    }
+
+    .login-card h2 {
+      color: #0f172a;
+      font-size: 22px;
+      font-weight: 800;
+      margin-bottom: 6px;
+    }
+
+    .login-card p {
+      color: #64748b;
+      font-size: 13.5px;
+      margin-bottom: 22px;
+    }
+
+    .account-selector {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+
+    .account-btn {
+      padding: 12px 8px;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 12px;
+      background: #f8fafc;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      color: #475569;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .account-btn:hover {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+    }
+
+    .account-btn.selected {
+      background: #eff6ff;
+      border-color: #2563eb;
+      color: #1d4ed8;
+      box-shadow: 0 4px 10px rgba(37, 99, 235, 0.15);
+    }
+
+    .pin-input-container {
+      margin-bottom: 18px;
+      text-align: right;
+    }
+
+    .pin-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      color: #334155;
+      margin-bottom: 6px;
+    }
+
+    .pin-input {
+      width: 100%;
+      padding: 12px 16px;
+      border-radius: 10px;
+      border: 1.5px solid #cbd5e1;
+      font-size: 18px;
+      font-family: inherit;
+      text-align: center;
+      letter-spacing: 6px;
+      color: #0f172a;
+      transition: border-color 0.2s;
+    }
+
+    .pin-input:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    }
+
+    .quick-pin-hint {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 6px;
+      font-size: 12px;
+      color: #64748b;
+    }
+
+    .quick-login-btn {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #1e3a8a, #2563eb);
+      color: #ffffff;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 800;
+      font-family: inherit;
+      cursor: pointer;
+      box-shadow: 0 6px 16px rgba(37, 99, 235, 0.25);
+      transition: transform 0.15s ease, opacity 0.2s;
+    }
+
+    .quick-login-btn:hover {
+      opacity: 0.95;
+      transform: translateY(-1px);
+    }
+
+    /* Modal for Editing Day */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.7);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10005;
+      padding: 16px;
+      visibility: hidden;
+      opacity: 0;
+      transition: all 0.25s ease;
+    }
+
+    .modal-overlay.active {
+      visibility: visible;
+      opacity: 1;
+    }
+
+    .modal-content {
+      background: #ffffff;
+      border-radius: 16px;
+      max-width: 520px;
+      width: 100%;
+      padding: 24px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+
+    @media print {
+      body {
+        padding: 0;
+        background: #ffffff;
+        color: #000000;
+      }
+
+      .top-bar .btn-group,
+      .tabs-nav,
+      .timer-card,
+      .toast-msg,
+      .user-session-bar,
+      .login-overlay,
+      #adminTab {
+        display: none !important;
+      }
+
+      .container {
+        max-width: 100%;
+        margin: 0;
+      }
+
+      .schedule-card {
+        border: 1px solid #94a3b8;
+        box-shadow: none;
+      }
+
+      tr {
+        page-break-inside: avoid;
+      }
+
+      th {
+        background: #1e3a8a !important;
+        color: #ffffff !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="loginOverlay" class="login-overlay">
+    <div class="login-card">
+      <div class="login-icon-badge">🎯</div>
+      <h2>منصة مذاكرة القدرات</h2>
+      <p>بإشراف الأستاذ عبدالله • يرجى اختيار الحساب للمتابعة</p>
+
+      <div class="account-selector">
+        <button type="button" class="account-btn selected" id="accBtnJawan" onclick="selectLoginAccount('jawan')">
+          <span style="font-size: 22px;">🌸</span>
+          <span>جوان</span>
+        </button>
+        <button type="button" class="account-btn" id="accBtnFajr" onclick="selectLoginAccount('fajr')">
+          <span style="font-size: 22px;">✨</span>
+          <span>فجر</span>
+        </button>
+        <button type="button" class="account-btn" id="accBtnTeacher" onclick="selectLoginAccount('teacher')">
+          <span style="font-size: 22px;">👨‍🏫</span>
+          <span>أ. عبدالله</span>
+        </button>
+      </div>
+
+      <div class="pin-input-container">
+        <label class="pin-label" id="loginPinLabel">الرمز السري لحساب (جوان):</label>
+        <input type="password" id="loginPinInput" class="pin-input" placeholder="••••" maxlength="8" autofocus onkeydown="if(event.key==='Enter') executeLogin()">
+        <div class="quick-pin-hint">
+          <span id="pinHintText">الرمز الافتراضي: 1234</span>
+          <a href="javascript:void(0)" onclick="autofillPin()" style="color: #2563eb; text-decoration: none; font-weight: 700;">تعبئة سريعة</a>
+        </div>
+      </div>
+
+      <button type="button" class="quick-login-btn" onclick="executeLogin()">دخول المنصة 🚀</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="user-session-bar" id="sessionBar">
+      <div class="user-info-tag">
+        <span id="sessionAvatar" style="font-size: 20px;">🌸</span>
+        <span>مرحباً، <strong id="sessionUserName">جوان</strong></span>
+        <span id="sessionRoleBadge" style="font-size: 11.5px; background: #e0f2fe; color: #0369a1; padding: 2px 8px; border-radius: 999px;">طالبة</span>
+      </div>
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <span id="sessionLoginTime" style="font-size: 12px; color: #94a3b8;"></span>
+        <button class="logout-btn" onclick="logoutUser()">تسجيل الخروج 🚪</button>
+      </div>
+    </div>
+
+    <!-- Header Section -->
+    <div class="top-bar">
+      <div class="header-text">
+        <h1>جدول مذاكرة القدرات (كمي ٩ + لفظي ١٨)</h1>
+        <div>
+          <span class="teacher-badge">👨‍🏫 إعداد وإشراف: الأستاذ عبدالله</span>
+          <span class="students-badge">🌟 مخصص للطالبتين: جوان & فجر</span>
+          <span id="adminBadgeTag" class="admin-badge" style="display: none;">⚙️ وضع المشرف العام مفعل</span>
+        </div>
+        <p style="margin-top: 6px; font-size: 14px; color: var(--text-muted);">
+          خطة الإنجاز اليومي المتكاملة والمكثفة مع لوحة تحكم كاملة للمشرف
+        </p>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-outline" onclick="resetCurrentStudentProgress()">
+          إعادة تعيين إنجاز الطالبة
+        </button>
+        <button class="btn btn-primary" onclick="printSchedule()">
+          طباعة / حفظ كـ PDF
+        </button>
+      </div>
+    </div>
+
+    <div class="teacher-note-banner" id="teacherNoteDisplay">
+      <span style="font-size: 22px;">📢</span>
+      <div>
+        <strong>رسالة وتوجيه من الأستاذ عبدالله:</strong>
+        <p id="teacherNoteText" style="margin-top: 2px; color: #1e3a8a;">
+          استمروا في الالتزام اليومي يا جوان وفجر، حل التمارين بيدك هو مفتاح الـ +95 بإذن الله!
+        </p>
+      </div>
+    </div>
+
+    <div class="student-selector">
+      <button id="btnStudentJawan" class="student-tab active-jawan" onclick="selectStudent('jawan')">
+        <span>🌸 الطالبة: جوان</span>
+        <span id="jawanBadgePercent" style="font-size: 12px; background: rgba(255,255,255,0.25); padding: 2px 8px; border-radius: 999px;">0%</span>
+      </button>
+      <button id="btnStudentFajr" class="student-tab" onclick="selectStudent('fajr')">
+        <span>✨ الطالبة: فجر</span>
+        <span id="fajrBadgePercent" style="font-size: 12px; background: rgba(0,0,0,0.08); padding: 2px 8px; border-radius: 999px;">0%</span>
+      </button>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+      <div class="stat-card quant">
+        <div class="stat-title">مقاطع الكمّي المنجزة (<span class="current-student-name">جوان</span>)</div>
+        <div class="stat-value" id="quantStats">0 / 9</div>
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill fill-quant" id="quantBar" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <div class="stat-card verbal">
+        <div class="stat-title">مقاطع اللفظي المنجزة (<span class="current-student-name">جوان</span>)</div>
+        <div class="stat-value" id="verbalStats">0 / 18</div>
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill fill-verbal" id="verbalBar" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <div class="stat-card overall">
+        <div class="stat-title">نسبة الإنجاز الكلية اليومية (<span class="current-student-name">جوان</span>)</div>
+        <div class="stat-value" id="overallStats">0%</div>
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill fill-overall" id="overallBar" style="width: 0%"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tabs-nav">
+      <button class="tab-btn active" onclick="switchTab('planTab')">الجدول الزمني المنظم</button>
+      <button class="tab-btn" onclick="switchTab('checklistTab')">قائمة المقاطع (٢٧ مقطع)</button>
+      <button class="tab-btn" onclick="switchTab('toolsTab')">المؤقت والإرشادات</button>
+      <button id="adminTabBtn" class="tab-btn admin-tab" style="display: none;" onclick="switchTab('adminTab')">⚙️ لوحة تحكم المشرف (أ. عبدالله)</button>
+    </div>
+
+    <!-- Tab 1: Plan Table -->
+    <div id="planTab" class="tab-pane active">
+      <div class="schedule-card">
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 60px;">تم</th>
+                <th style="width: 110px;">اليوم</th>
+                <th style="width: 140px;">القسم الكمي (٩)</th>
+                <th style="width: 180px;">القسم اللفظي (١٨)</th>
+                <th>المهمة التطبيقية وملاحظات الإتقان</th>
+                <th id="thAdminEditCol" style="width: 80px; display: none;">تعديل</th>
+              </tr>
+            </thead>
+            <tbody id="scheduleTableBody">
+              <!-- Rendered Dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="checklistTab" class="tab-pane">
+      <div class="info-card" style="margin-bottom: 20px;">
+        <h3 style="margin-bottom: 8px; color: var(--primary);">مقاطع الكمّي (٩ مقاطع)</h3>
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 10px;">اضغط على المقطع لتعليمه كمنجز:</p>
+        <div class="video-grid" id="quantGrid"></div>
+      </div>
+
+      <div class="info-card">
+        <h3 style="margin-bottom: 8px; color: var(--primary);">مقاطع اللفظي (١٨ مقطع)</h3>
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 10px;">اضغط على المقطع لتعليمه كمنجز:</p>
+        <div class="video-grid" id="verbalGrid"></div>
+      </div>
+    </div>
+
+    <div id="toolsTab" class="tab-pane">
+      <div class="info-grid">
+        <div class="info-card timer-card">
+          <h3 style="color: var(--primary); margin-bottom: 10px;">مؤقت المذاكرة (بومودورو ٢٥ دقيقة)</h3>
+          <div class="timer-container">
+            <div class="timer-display" id="timerDisplay">25:00</div>
+            <div class="timer-controls">
+              <button class="btn btn-primary" id="startTimerBtn" onclick="toggleTimer()">بدء الجلسة</button>
+              <button class="btn btn-outline" onclick="resetTimer()">إعادة تعيين</button>
+            </div>
+          </div>
+          <p style="font-size: 12px; color: var(--text-muted); text-align: center; margin-top: 12px;">
+            ركزي لمدة 25 دقيقة لكل مقطع، ثم خذي استراحة 5 دقائق لتنشيط العقل.
+          </p>
+        </div>
+
+        <div class="info-card">
+          <h3 style="color: var(--primary); margin-bottom: 10px;">نصائح وتوجيهات الأستاذ عبدالله</h3>
+          <ul class="tips-list">
+            <li><strong>المتابعة اليومية:</strong> احرصي يا جوان ويا فجر على ألا يمر يوم دون إتمام مقطع الكمي ومقطعي اللفظي لحفظ نسق التعلم.</li>
+            <li><strong>طريقة الحل الذاتي:</strong> أوقفي المقطع قبل شرح الأستاذ، وحاولي إيجاد الحل بنفسك أولاً خلال دقيقة واحدة.</li>
+            <li><strong>دفتر الأخطاء:</strong> كل فكرة سؤال أخطأتِ فيها دوّنيها فوراً؛ مراجعة هذا الدفتر ليلة الاختبار ترفع الدرجة بشكل ملحوظ.</li>
+            <li><strong>الترتيب الزمني:</strong> ابدئي يومك دائماً بمقطع الكمي في الصباح الباكر لصفاء الذهن، واجعلي اللفظي بعد الظهر أو المساء.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div id="adminTab" class="tab-pane">
+      <!-- Comparative Overview -->
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <h3>📊 لوحة المتابعة الشاملة للطالبتين (جوان & فجر)</h3>
+          <button class="btn btn-outline" onclick="refreshAdminStats()">تحديث البيانات 🔄</button>
+        </div>
+        
+        <div class="compare-grid">
+          <div class="student-compare-box jawan">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <h4 style="font-size: 16px; color: #db2777;">🌸 الطالبة: جوان</h4>
+              <span id="admJawanPercent" style="font-weight: 800; font-size: 16px; color: #db2777;">0%</span>
+            </div>
+            <p style="font-size: 13px; color: #64748b; margin-bottom: 6px;">مقاطع كمي: <strong id="admJawanQuant" style="color: #0f172a;">0 / 9</strong> | لفظي: <strong id="admJawanVerbal" style="color: #0f172a;">0 / 18</strong></p>
+            <p style="font-size: 13px; color: #64748b; margin-bottom: 12px;">الأيام المكتملة: <strong id="admJawanDays" style="color: #0f172a;">0 / 11</strong></p>
+            <button class="btn btn-outline" style="font-size: 12px; padding: 6px 12px;" onclick="selectStudent('jawan'); switchTab('planTab')">عرض جدول جوان 👁️</button>
+            <button class="btn btn-danger" style="font-size: 12px; padding: 6px 12px; margin-right: 6px;" onclick="adminResetStudent('jawan')">تصفير الإنجاز</button>
+          </div>
+
+          <div class="student-compare-box fajr">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <h4 style="font-size: 16px; color: #7c3aed;">✨ الطالبة: فجر</h4>
+              <span id="admFajrPercent" style="font-weight: 800; font-size: 16px; color: #7c3aed;">0%</span>
+            </div>
+            <p style="font-size: 13px; color: #64748b; margin-bottom: 6px;">مقاطع كمي: <strong id="admFajrQuant" style="color: #0f172a;">0 / 9</strong> | لفظي: <strong id="admFajrVerbal" style="color: #0f172a;">0 / 18</strong></p>
+            <p style="font-size: 13px; color: #64748b; margin-bottom: 12px;">الأيام المكتملة: <strong id="admFajrDays" style="color: #0f172a;">0 / 11</strong></p>
+            <button class="btn btn-outline" style="font-size: 12px; padding: 6px 12px;" onclick="selectStudent('fajr'); switchTab('planTab')">عرض جدول فجر 👁️</button>
+            <button class="btn btn-danger" style="font-size: 12px; padding: 6px 12px; margin-right: 6px;" onclick="adminResetStudent('fajr')">تصفير الإنجاز</button>
+          </div>
+        </div>
+
+        <div style="margin-top: 14px;">
+          <h4 style="font-size: 14px; margin-bottom: 8px; color: #334155;">سجل المذاكرة والنشاط المباشر:</h4>
+          <div class="activity-log" id="adminActivityLog">
+            <div style="text-align: center; color: #94a3b8; padding: 16px;">لا توجد أنشطة مسجلة حتى الآن</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Change Passwords / PINs -->
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <h3>🔐 إدارة كلمات المرور والرموز السرية</h3>
+        </div>
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px;">
+          يمكنك تغيير الرمز السري لكل من حساب الأستاذ عبدالله وحسابات الطالبتين (جوان وفجر).
+        </p>
+
+        <div class="form-grid-3">
+          <div class="form-group">
+            <label>رمز الأستاذ عبدالله (المشرف):</label>
+            <input type="text" id="pinInputTeacher" class="form-control" maxlength="8">
+          </div>
+          <div class="form-group">
+            <label>رمز الطالبة (جوان):</label>
+            <input type="text" id="pinInputJawan" class="form-control" maxlength="8">
+          </div>
+          <div class="form-group">
+            <label>رمز الطالبة (فجر):</label>
+            <input type="text" id="pinInputFajr" class="form-control" maxlength="8">
+          </div>
+        </div>
+        <button class="btn btn-admin" onclick="saveNewPins()">حفظ الرموز السرية الجديدة 💾</button>
+      </div>
+
+      <!-- Modify Teacher Directive Note -->
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <h3>📢 تعديل رسالة وتوجيه الأستاذ اليومي</h3>
+        </div>
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 10px;">
+          هذه الرسالة تظهر مباشرة في الصفحة الرئيسية أمام الطالبتين لتحفيزهما وتوجيههما:
+        </p>
+        <div class="form-group">
+          <textarea id="adminTeacherNoteInput" class="form-control" rows="2"></textarea>
+        </div>
+        <button class="btn btn-admin" onclick="saveTeacherNote()">تحديث الرسالة فوراً ✨</button>
+      </div>
+
+      <!-- Schedule Table Quick Actions -->
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <h3>📝 تعديل الجدول والمهام الدراسية</h3>
+          <button class="btn btn-outline" onclick="restoreDefaultSchedule()">استعادة الجدول الافتراضي ↩️</button>
+        </div>
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">
+          يمكنك تعديل محتوى أي يوم (الكمي، اللفظي، الملاحظات) بالضغط على زر "تعديل ✏️" الموجود في جدول المذاكرة.
+        </p>
+        <button class="btn btn-primary" onclick="switchTab('planTab')">الانتقال لجدول المذاكرة للتعديل ✏️</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="editDayModal">
+    <div class="modal-content">
+      <h3 style="margin-bottom: 12px; color: var(--primary);" id="editModalTitle">تعديل بيانات اليوم</h3>
+      <div class="form-group">
+        <label>عنوان اليوم:</label>
+        <input type="text" id="editDayName" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>مهمة القسم الكمي:</label>
+        <input type="text" id="editDayQuant" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>مهمة القسم اللفظي:</label>
+        <input type="text" id="editDayVerbal" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>المهمة التطبيقية وملاحظة الإتقان:</label>
+        <textarea id="editDayTask" class="form-control" rows="3"></textarea>
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px;">
+        <button class="btn btn-outline" onclick="closeEditModal()">إلغاء</button>
+        <button class="btn btn-admin" onclick="saveDayChanges()">حفظ التعديلات ✅</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast-msg">تم الحفظ بنجاح</div>
+
+  <script>
+    const STORAGE_KEY_AUTH = 'qudurat_auth_session_v4';
+    const STORAGE_KEY_PINS = 'qudurat_pins_v4';
+    const STORAGE_KEY_PROGRESS = 'qudurat_progress_v4';
+    const STORAGE_KEY_SCHEDULE = 'qudurat_schedule_custom_v4';
+    const STORAGE_KEY_NOTE = 'qudurat_teacher_note_v4';
+    const STORAGE_KEY_LOGS = 'qudurat_activity_logs_v4';
+
+    const DEFAULT_PINS = {
+      jawan: '1234',
+      fajr: '1234',
+      teacher: '9999'
+    };
+
+    let userPins = { ...DEFAULT_PINS };
+
+    const DEFAULT_SCHEDULE = [
+      { day: 1, title: 'اليوم ١', quant: 'مقطع كمي ١', verbal: 'مقطع لفظي ١ + ٢', task: 'حصر وتدوين القوانين الأساسية + حل 10 تمارين سريعة للكمي وتلخيص مفردات التناظر' },
+      { day: 2, title: 'اليوم ٢', quant: 'مقطع كمي ٢', verbal: 'مقطع لفظي ٣ + ٤', task: 'استخراج العلاقات اللفظية غير المألوفة وتطبيق استراتيجيات الحساب الذهني السريع' },
+      { day: 3, title: 'اليوم ٣', quant: 'مقطع كمي ٣', verbal: 'مقطع لفظي ٥ + ٦', task: 'مراجعة دفتر القوانين للأيام السابقة والتدرب على إكمال الجمل بسياق واقعي' },
+      { day: 4, title: 'اليوم ٤', quant: 'مقطع كمي ٤', verbal: 'مقطع لفظي ٧ + ٨', task: 'تطبيق استراتيجية تجريب الاختيارات في المسائل الحسابية وحل تمارين الخطأ السياقي' },
+      { day: 5, title: 'اليوم ٥', quant: 'مقطع كمي ٥', verbal: 'مقطع لفظي ٩ + ١٠', task: 'التدرب على التدرج المنتظم والنسب المئوية مع تمارين استيعاب المقروء الأولى' },
+      { day: 6, title: 'اليوم ٦', quant: 'مقطع كمي ٦', verbal: 'مقطع لفظي ١١ + ١٢', task: 'مسائل الهندسة والزوايا والأشكال + تحليل قطع استيعاب المقروء الأكثر تكراراً' },
+      { day: 7, title: 'اليوم ٧', quant: 'مقطع كمي ٧', verbal: 'مقطع لفظي ١٣ + ١٤', task: 'مسائل السرعة والمسافة والزمن + إتقان أسئلة الارتباط والاختلاف' },
+      { day: 8, title: 'اليوم ٨', quant: 'مقطع كمي ٨', verbal: 'مقطع لفظي ١٥ + ١٦', task: 'الاحتمالات والإحصاء والرسوم البيانية + اختبار قصير لقياس السرعة اللفظية' },
+      { day: 9, title: 'اليوم ٩', quant: 'مقطع كمي ٩', verbal: 'مقطع لفظي ١٧ + ١٨', task: 'إتمام كافة مقاطع التأسيس وجرد قائمة الأسئلة التي استصعبتها لإعادة مراجعتها' },
+      { day: 10, title: 'اليوم ١٠', quant: 'مراجعة شاملة للكمي', verbal: 'مراجعة شاملة للفظي', task: 'خوض اختبار تجريبي كامل (محاكاة الاختبار الفعلي مع ضبط الوقت بساعة إيقاف)' },
+      { day: 11, title: 'اليوم ١١', quant: 'تجميعات النماذج', verbal: 'تجميعات النماذج الحديثة', task: 'التركيز على النماذج الأكثر تكراراً ومراجعة دفتر الأخطاء قبل موعد الاختبار' }
+    ];
+
+    let currentSchedule = JSON.parse(JSON.stringify(DEFAULT_SCHEDULE));
+
+    const DEFAULT_NOTE = 'استمروا في الالتزام اليومي يا جوان وفجر، حل التمارين بيدك هو مفتاح الـ +95 بإذن الله!';
+    let teacherNote = DEFAULT_NOTE;
+
+    let activityLogs = [];
+
+    const createDefaultStudentData = () => ({
+      quantDone: Array(9).fill(false),
+      verbalDone: Array(18).fill(false),
+      daysDone: Array(11).fill(false),
+      lastUpdated: null
+    });
+
+    let appData = {
+      jawan: createDefaultStudentData(),
+      fajr: createDefaultStudentData()
+    };
+
+    let selectedLoginRole = 'jawan';
+    let currentUserSession = null;
+    let currentStudent = 'jawan';
+    let editingDayIndex = -1;
+
+    function loadSavedState() {
+      try {
+        const savedPins = localStorage.getItem(STORAGE_KEY_PINS);
+        if (savedPins) userPins = { ...DEFAULT_PINS, ...JSON.parse(savedPins) };
+
+        const savedProgress = localStorage.getItem(STORAGE_KEY_PROGRESS);
+        if (savedProgress) appData = JSON.parse(savedProgress);
+
+        const savedSchedule = localStorage.getItem(STORAGE_KEY_SCHEDULE);
+        if (savedSchedule) currentSchedule = JSON.parse(savedSchedule);
+
+        const savedNote = localStorage.getItem(STORAGE_KEY_NOTE);
+        if (savedNote) teacherNote = savedNote;
+
+        const savedLogs = localStorage.getItem(STORAGE_KEY_LOGS);
+        if (savedLogs) activityLogs = JSON.parse(savedLogs);
+      } catch (e) {
+        console.error('State load error:', e);
+      }
+
+      document.getElementById('teacherNoteText').innerText = teacherNote;
+      document.getElementById('adminTeacherNoteInput').value = teacherNote;
+      document.getElementById('pinInputTeacher').value = userPins.teacher;
+      document.getElementById('pinInputJawan').value = userPins.jawan;
+      document.getElementById('pinInputFajr').value = userPins.fajr;
+    }
+
+    function saveProgress() {
+      try {
+        localStorage.setItem(STORAGE_KEY_PROGRESS, JSON.stringify(appData));
+      } catch (e) {}
+      updateStats();
+      refreshAdminStats();
+    }
+
+    function saveScheduleState() {
+      try {
+        localStorage.setItem(STORAGE_KEY_SCHEDULE, JSON.stringify(currentSchedule));
+      } catch (e) {}
+      renderScheduleTable();
+    }
+
+    function addActivityLog(studentKey, text) {
+      const name = studentKey === 'jawan' ? 'جوان' : 'فجر';
+      const timeStr = new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' }) + ' - ' + new Date().toLocaleDateString('ar-SA');
+      activityLogs.unshift({ student: name, role: studentKey, action: text, time: timeStr });
+      if (activityLogs.length > 50) activityLogs.pop();
+      try {
+        localStorage.setItem(STORAGE_KEY_LOGS, JSON.stringify(activityLogs));
+      } catch (e) {}
+      renderLogs();
+    }
+
+    function selectLoginAccount(roleKey) {
+      selectedLoginRole = roleKey;
+      document.querySelectorAll('.account-btn').forEach(b => b.classList.remove('selected'));
+      if (roleKey === 'jawan') document.getElementById('accBtnJawan').classList.add('selected');
+      if (roleKey === 'fajr') document.getElementById('accBtnFajr').classList.add('selected');
+      if (roleKey === 'teacher') document.getElementById('accBtnTeacher').classList.add('selected');
+
+      const names = { jawan: 'جوان', fajr: 'فجر', teacher: 'الأستاذ عبدالله' };
+      document.getElementById('loginPinLabel').innerText = `الرمز السري لحساب (${names[roleKey]}):`;
+      document.getElementById('pinHintText').innerText = `الرمز الحالي: ${userPins[roleKey]}`;
+      const pinInput = document.getElementById('loginPinInput');
+      pinInput.value = '';
+      pinInput.focus();
+    }
+
+    function autofillPin() {
+      document.getElementById('loginPinInput').value = userPins[selectedLoginRole];
+      executeLogin();
+    }
+
+    function executeLogin() {
+      const pinVal = document.getElementById('loginPinInput').value.trim();
+      const expectedPin = userPins[selectedLoginRole];
+
+      if (pinVal === expectedPin) {
+        const names = { jawan: 'جوان', fajr: 'فجر', teacher: 'الأستاذ عبدالله' };
+        currentUserSession = {
+          role: selectedLoginRole,
+          name: names[selectedLoginRole],
+          loginAt: new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })
+        };
+
+        try {
+          localStorage.setItem(STORAGE_KEY_AUTH, JSON.stringify(currentUserSession));
+        } catch (e) {}
+
+        applySession(currentUserSession);
+        document.getElementById('loginOverlay').classList.add('hidden');
+        showToast(`أهلاً بك يا ${currentUserSession.name}! تم تسجيل الدخول بنجاح.`);
+      } else {
+        showToast('⚠️ الرمز السري غير صحيح، يرجى المحاولة مجدداً.');
+        document.getElementById('loginPinInput').focus();
+      }
+    }
+
+    function applySession(session) {
+      const avatars = { jawan: '🌸', fajr: '✨', teacher: '👨‍🏫' };
+      const titles = { jawan: 'طالبة', fajr: 'طالبة', teacher: 'المشرف العام (أدمن)' };
+
+      document.getElementById('sessionAvatar').innerText = avatars[session.role];
+      document.getElementById('sessionUserName').innerText = session.name;
+      document.getElementById('sessionRoleBadge').innerText = titles[session.role];
+      document.getElementById('sessionLoginTime').innerText = `دخول: ${session.loginAt}`;
+
+      const adminTabBtn = document.getElementById('adminTabBtn');
+      const adminBadgeTag = document.getElementById('adminBadgeTag');
+      const editCol = document.getElementById('thAdminEditCol');
+      const studentSelector = document.querySelector('.student-selector');
+
+      if (session.role === 'teacher') {
+        adminTabBtn.style.display = 'block';
+        adminBadgeTag.style.display = 'inline-flex';
+        studentSelector.style.display = 'flex';
+        if (editCol) editCol.style.display = 'table-cell';
+      } else {
+        adminTabBtn.style.display = 'none';
+        adminBadgeTag.style.display = 'none';
+        studentSelector.style.display = 'none';
+        if (editCol) editCol.style.display = 'none';
+        selectStudent(session.role);
+      }
+
+      renderAll();
+    }
+
+    function logoutUser() {
+      try {
+        localStorage.removeItem(STORAGE_KEY_AUTH);
+      } catch (e) {}
+      currentUserSession = null;
+      document.getElementById('loginPinInput').value = '';
+      document.getElementById('loginOverlay').classList.remove('hidden');
+      selectLoginAccount('jawan');
+      showToast('تم تسجيل الخروج.');
+    }
+
+    function checkAuthSession() {
+      try {
+        const savedSession = localStorage.getItem(STORAGE_KEY_AUTH);
+        if (savedSession) {
+          currentUserSession = JSON.parse(savedSession);
+          applySession(currentUserSession);
+          document.getElementById('loginOverlay').classList.add('hidden');
+          return true;
+        }
+      } catch (e) {}
+      document.getElementById('loginOverlay').classList.remove('hidden');
+      selectLoginAccount('jawan');
+      return false;
+    }
+
+    function renderAll() {
+      renderScheduleTable();
+      renderGrids();
+      updateStats();
+      refreshAdminStats();
+      renderLogs();
+    }
+
+    function renderScheduleTable() {
+      const tbody = document.getElementById('scheduleTableBody');
+      tbody.innerHTML = '';
+      const isTeacher = currentUserSession && currentUserSession.role === 'teacher';
+      const studentData = appData[currentStudent];
+
+      currentSchedule.forEach((item, index) => {
+        const tr = document.createElement('tr');
+        const isDone = !!studentData.daysDone[index];
+
+        let editBtnHtml = '';
+        if (isTeacher) {
+          editBtnHtml = `<td><button class="btn btn-outline" style="padding: 4px 8px; font-size: 12px;" onclick="openEditModal(${index})">تعديل ✏️</button></td>`;
+        }
+
+        tr.innerHTML = `
+          <td><input type="checkbox" class="action-checkbox day-check" ${isDone ? 'checked' : ''} onchange="toggleDay(${index + 1}, this.checked)"></td>
+          <td><span class="day-badge">${item.title}</span></td>
+          <td><span class="badge-quant">${item.quant}</span></td>
+          <td><span class="badge-verbal">${item.verbal}</span></td>
+          <td>${item.task}</td>
+          ${editBtnHtml}
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderGrids() {
+      const studentData = appData[currentStudent];
+      const qGrid = document.getElementById('quantGrid');
+      qGrid.innerHTML = '';
+      for (let i = 0; i < 9; i++) {
+        const isDone = studentData.quantDone[i];
+        const chip = document.createElement('div');
+        chip.className = 'video-chip' + (isDone ? ' done' : '');
+        chip.innerHTML = `<input type="checkbox" ${isDone ? 'checked' : ''} style="accent-color: #2563eb;"> مقطع كمي ${i + 1}`;
+        chip.onclick = () => toggleQuant(i);
+        qGrid.appendChild(chip);
+      }
+
+      const vGrid = document.getElementById('verbalGrid');
+      vGrid.innerHTML = '';
+      for (let i = 0; i < 18; i++) {
+        const isDone = studentData.verbalDone[i];
+        const chip = document.createElement('div');
+        chip.className = 'video-chip' + (isDone ? ' done' : '');
+        chip.innerHTML = `<input type="checkbox" ${isDone ? 'checked' : ''} style="accent-color: #059669;"> مقطع لفظي ${i + 1}`;
+        chip.onclick = () => toggleVerbal(i);
+        vGrid.appendChild(chip);
+      }
+    }
+
+    function renderLogs() {
+      const logContainer = document.getElementById('adminActivityLog');
+      if (!logContainer) return;
+      if (activityLogs.length === 0) {
+        logContainer.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 16px;">لا توجد أنشطة مسجلة حتى الآن</div>';
+        return;
+      }
+      logContainer.innerHTML = activityLogs.map(log => `
+        <div class="log-item">
+          <div>
+            <span class="log-badge" style="background: ${log.role === 'jawan' ? '#fce7f3; color: #be185d;' : '#ede9fe; color: #6d28d9;'}">${log.student}</span>
+            <span style="color: #1e293b; margin-right: 6px;">${log.action}</span>
+          </div>
+          <span style="color: #94a3b8; font-size: 11px;">${log.time}</span>
+        </div>
+      `).join('');
+    }
+
+    function toggleQuant(index) {
+      const studentData = appData[currentStudent];
+      studentData.quantDone[index] = !studentData.quantDone[index];
+      const status = studentData.quantDone[index] ? 'أنجزت' : 'ألغت إنجاز';
+      addActivityLog(currentStudent, `${status} مقطع كمي ${index + 1}`);
+      saveProgress();
+      renderGrids();
+      showToast(`تم تحديث مقطع كمي ${index + 1}`);
+    }
+
+    function toggleVerbal(index) {
+      const studentData = appData[currentStudent];
+      studentData.verbalDone[index] = !studentData.verbalDone[index];
+      const status = studentData.verbalDone[index] ? 'أنجزت' : 'ألغت إنجاز';
+      addActivityLog(currentStudent, `${status} مقطع لفظي ${index + 1}`);
+      saveProgress();
+      renderGrids();
+      showToast(`تم تحديث مقطع لفظي ${index + 1}`);
+    }
+
+    function toggleDay(dayNum, isChecked) {
+      const dayIndex = dayNum - 1;
+      const studentData = appData[currentStudent];
+      studentData.daysDone[dayIndex] = isChecked;
+
+      if (dayNum >= 1 && dayNum <= 9) {
+        const qIndex = dayNum - 1;
+        const v1Index = (dayNum - 1) * 2;
+        const v2Index = v1Index + 1;
+        if (isChecked) {
+          studentData.quantDone[qIndex] = true;
+          studentData.verbalDone[v1Index] = true;
+          studentData.verbalDone[v2Index] = true;
+        }
+      }
+
+      addActivityLog(currentStudent, `${isChecked ? 'أكملت' : 'ألغت إكمال'} مهام ${currentSchedule[dayIndex]?.title || 'اليوم ' + dayNum}`);
+      saveProgress();
+      renderGrids();
+      showToast(`تم تحديث اليوم ${dayNum}`);
+    }
+
+    function calculateStudentPercent(data) {
+      const totalDone = data.quantDone.filter(Boolean).length + data.verbalDone.filter(Boolean).length;
+      return Math.round((totalDone / 27) * 100);
+    }
+
+    function updateStats() {
+      const studentData = appData[currentStudent];
+      const qDoneCount = studentData.quantDone.filter(Boolean).length;
+      const vDoneCount = studentData.verbalDone.filter(Boolean).length;
+      const totalDone = qDoneCount + vDoneCount;
+
+      const qPercent = Math.round((qDoneCount / 9) * 100);
+      const vPercent = Math.round((vDoneCount / 18) * 100);
+      const overallPercent = Math.round((totalDone / 27) * 100);
+
+      document.getElementById('quantStats').innerText = `${qDoneCount} / 9`;
+      document.getElementById('quantBar').style.width = `${qPercent}%`;
+
+      document.getElementById('verbalStats').innerText = `${vDoneCount} / 18`;
+      document.getElementById('verbalBar').style.width = `${vPercent}%`;
+
+      document.getElementById('overallStats').innerText = `${overallPercent}%`;
+      document.getElementById('overallBar').style.width = `${overallPercent}%`;
+
+      const jawanPercent = calculateStudentPercent(appData.jawan);
+      const fajrPercent = calculateStudentPercent(appData.fajr);
+      document.getElementById('jawanBadgePercent').innerText = `${jawanPercent}%`;
+      document.getElementById('fajrBadgePercent').innerText = `${fajrPercent}%`;
+    }
+
+    function refreshAdminStats() {
+      const jDone = appData.jawan;
+      const fDone = appData.fajr;
+
+      const jPercent = calculateStudentPercent(jDone);
+      const fPercent = calculateStudentPercent(fDone);
+
+      const el = id => document.getElementById(id);
+      if (el('admJawanPercent')) el('admJawanPercent').innerText = `${jPercent}%`;
+      if (el('admFajrPercent')) el('admFajrPercent').innerText = `${fPercent}%`;
+
+      if (el('admJawanQuant')) el('admJawanQuant').innerText = `${jDone.quantDone.filter(Boolean).length} / 9`;
+      if (el('admJawanVerbal')) el('admJawanVerbal').innerText = `${jDone.verbalDone.filter(Boolean).length} / 18`;
+      if (el('admJawanDays')) el('admJawanDays').innerText = `${jDone.daysDone.filter(Boolean).length} / 11`;
+
+      if (el('admFajrQuant')) el('admFajrQuant').innerText = `${fDone.quantDone.filter(Boolean).length} / 9`;
+      if (el('admFajrVerbal')) el('admFajrVerbal').innerText = `${fDone.verbalDone.filter(Boolean).length} / 18`;
+      if (el('admFajrDays')) el('admFajrDays').innerText = `${fDone.daysDone.filter(Boolean).length} / 11`;
+    }
+
+    function adminResetStudent(studentKey) {
+      const name = studentKey === 'jawan' ? 'جوان' : 'فجر';
+      appData[studentKey] = createDefaultStudentData();
+      saveProgress();
+      renderAll();
+      showToast(`تم تصفير إنجاز الطالبة: ${name}`);
+    }
+
+    function resetCurrentStudentProgress() {
+      adminResetStudent(currentStudent);
+    }
+
+    function saveNewPins() {
+      const tPin = document.getElementById('pinInputTeacher').value.trim();
+      const jPin = document.getElementById('pinInputJawan').value.trim();
+      const fPin = document.getElementById('pinInputFajr').value.trim();
+
+      if (!tPin || !jPin || !fPin) {
+        showToast('⚠️ يرجى ملء جميع حقول الرموز السرية');
+        return;
+      }
+
+      userPins.teacher = tPin;
+      userPins.jawan = jPin;
+      userPins.fajr = fPin;
+
+      try {
+        localStorage.setItem(STORAGE_KEY_PINS, JSON.stringify(userPins));
+      } catch (e) {}
+
+      showToast('✅ تم حفظ كلمات المرور والرموز الجديدة بنجاح');
+    }
+
+    function saveTeacherNote() {
+      const text = document.getElementById('adminTeacherNoteInput').value.trim();
+      if (!text) return;
+      teacherNote = text;
+      document.getElementById('teacherNoteText').innerText = teacherNote;
+      try {
+        localStorage.setItem(STORAGE_KEY_NOTE, teacherNote);
+      } catch (e) {}
+      showToast('✅ تم تحديث توجيه الأستاذ وظهوره في الصفحة');
+    }
+
+    function openEditModal(index) {
+      editingDayIndex = index;
+      const dayData = currentSchedule[index];
+      document.getElementById('editModalTitle').innerText = `تعديل (${dayData.title})`;
+      document.getElementById('editDayName').value = dayData.title;
+      document.getElementById('editDayQuant').value = dayData.quant;
+      document.getElementById('editDayVerbal').value = dayData.verbal;
+      document.getElementById('editDayTask').value = dayData.task;
+      document.getElementById('editDayModal').classList.add('active');
+    }
+
+    function closeEditModal() {
+      document.getElementById('editDayModal').classList.remove('active');
+      editingDayIndex = -1;
+    }
+
+    function saveDayChanges() {
+      if (editingDayIndex < 0) return;
+      currentSchedule[editingDayIndex].title = document.getElementById('editDayName').value.trim() || currentSchedule[editingDayIndex].title;
+      currentSchedule[editingDayIndex].quant = document.getElementById('editDayQuant').value.trim();
+      currentSchedule[editingDayIndex].verbal = document.getElementById('editDayVerbal').value.trim();
+      currentSchedule[editingDayIndex].task = document.getElementById('editDayTask').value.trim();
+
+      saveScheduleState();
+      closeEditModal();
+      showToast('✅ تم حفظ تعديلات اليوم في الجدول');
+    }
+
+    function restoreDefaultSchedule() {
+      currentSchedule = JSON.parse(JSON.stringify(DEFAULT_SCHEDULE));
+      saveScheduleState();
+      showToast('تمت استعادة الجدول الأساسي المعتمد');
+    }
+
+    function selectStudent(studentKey) {
+      currentStudent = studentKey;
+      const btnJawan = document.getElementById('btnStudentJawan');
+      const btnFajr = document.getElementById('btnStudentFajr');
+
+      if (studentKey === 'jawan') {
+        btnJawan.className = 'student-tab active-jawan';
+        btnFajr.className = 'student-tab';
+      } else {
+        btnJawan.className = 'student-tab';
+        btnFajr.className = 'student-tab active-fajr';
+      }
+
+      const name = studentKey === 'jawan' ? 'جوان' : 'فجر';
+      document.querySelectorAll('.current-student-name').forEach(el => el.innerText = name);
+      renderAll();
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+
+      if (window.event && window.event.target && window.event.target.classList.contains('tab-btn')) {
+        window.event.target.classList.add('active');
+      } else if (tabId === 'adminTab') {
+        document.getElementById('adminTabBtn').classList.add('active');
+      } else if (tabId === 'planTab') {
+        document.querySelector('.tab-btn:first-child').classList.add('active');
+      }
+      document.getElementById(tabId).classList.add('active');
+    }
+
+    function printSchedule() {
+      switchTab('planTab');
+      window.print();
+    }
+
+    function showToast(text) {
+      const toast = document.getElementById('toast');
+      toast.innerText = text;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+
+    let timerDuration = 25 * 60;
+    let timerRemaining = 25 * 60;
+    let timerInterval = null;
+
+    function playTone() {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.2);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 1.2);
+      } catch (e) {}
+    }
+
+    function formatTime(seconds) {
+      const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+      const s = (seconds % 60).toString().padStart(2, '0');
+      return `${m}:${s}`;
+    }
+
+    function toggleTimer() {
+      const btn = document.getElementById('startTimerBtn');
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+        btn.innerText = 'استئناف الجلسة';
+      } else {
+        btn.innerText = 'إيقاف مؤقت';
+        timerInterval = setInterval(() => {
+          if (timerRemaining > 0) {
+            timerRemaining--;
+            document.getElementById('timerDisplay').innerText = formatTime(timerRemaining);
+          } else {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            btn.innerText = 'بدء الجلسة';
+            playTone();
+            showToast('انتهت جلسة المذاكرة! خذي استراحة قصيرة.');
+          }
+        }, 1000);
+      }
+    }
+
+    function resetTimer() {
+      clearInterval(timerInterval);
+      timerInterval = null;
+      timerRemaining = timerDuration;
+      document.getElementById('timerDisplay').innerText = formatTime(timerRemaining);
+      document.getElementById('startTimerBtn').innerText = 'بدء الجلسة';
+    }
+
+    window.onload = function() {
+      loadSavedState();
+      checkAuthSession();
+    };
+  </script>
+</body>
+</html>
+
+```
