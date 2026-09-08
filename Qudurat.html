@@ -360,7 +360,7 @@
       <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
         <span id="syncStatusBadge" class="sync-status-indicator" onclick="manualSync()" title="اضغط للتحديث الفوري">
           <span class="sync-dot"></span>
-          <span id="syncStatusText">جاري التحقق 🟡</span>
+          <span id="syncStatusText">جاري الاتصال بالسحابة 🟡</span>
         </span>
         <button class="btn btn-outline" style="font-size: 12px; padding: 5px 10px;" onclick="manualSync()">مزامنة فورية 🔄</button>
         <span id="sessionLoginTime" style="font-size: 12px; color: #94a3b8;"></span>
@@ -378,7 +378,7 @@
           <span id="adminBadgeTag" class="admin-badge" style="display: none;">⚙️ وضع المشرف العام مفعل</span>
         </div>
         <p style="margin-top: 6px; font-size: 14px; color: var(--text-muted);">
-          خطة الإنجاز اليومي المتكاملة والمكثفة مع مزامنة سحابية حية
+          خطة الإنجاز اليومي المتكاملة مع مزامنة سحابية مباشرة عبر JSONBin
         </p>
       </div>
       <div class="btn-group">
@@ -549,32 +549,31 @@
         </div>
       </div>
 
-      <!-- Cloud Sync Configuration (JSONBin.io) -->
+      <!-- Cloud Sync Configuration (Embedded Defaults) -->
       <div class="admin-card">
         <div class="admin-card-header">
           <h3>☁️ إعدادات السحابة المباشرة (JSONBin.io)</h3>
-          <span id="adminServerStatusBadge" style="font-size: 12px; font-weight: 700; background: #fef2f2; color: #991b1b; padding: 4px 10px; border-radius: 8px;">غير متصل بالسحابة</span>
+          <span id="adminServerStatusBadge" style="font-size: 12px; font-weight: 700; background: #f0fdf4; color: #166534; padding: 4px 10px; border-radius: 8px;">متصل بالسحابة بنجاح 🟢</span>
         </div>
         <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">
-          خدمة مجانية تحفظ البيانات سحابياً وتربط الآيباد بجميع أجهزة الطالبات فوراً بدون أي سيرفرات معقدة:
+          تم ربط معرف السحابة ومفتاح الـ API مسبقاً داخل الكود بنجاح. أي جهاز يفتح المنصة سيتصل فوراً:
         </p>
 
         <div class="form-group">
           <label>معرف الحاوية السحابية (Bin ID):</label>
-          <input type="text" id="binIdInput" class="form-control" style="direction: ltr; font-family: monospace; font-size: 13px;" placeholder="مثال: 66a5e1234b123456789abcde">
+          <input type="text" id="binIdInput" class="form-control" style="direction: ltr; font-family: monospace; font-size: 13px;" value="6aa02fe0ac6210605ab442f7">
         </div>
 
         <div class="form-group">
           <label>المفتاح السري (X-Master-Key):</label>
-          <input type="password" id="masterKeyInput" class="form-control" style="direction: ltr; font-family: monospace; font-size: 13px;" placeholder="$2a$10$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+          <input type="password" id="masterKeyInput" class="form-control" style="direction: ltr; font-family: monospace; font-size: 13px;" value="$2a$10$r9xTZLQyB.28lAMqqsZei.4EYfu0P7MBZ1kFOVJSVvjQS.w1PkOku">
         </div>
         
         <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px;">
-          <button class="btn btn-admin" onclick="saveCloudConfig()">حفظ واختبار الاتصال بالسحابة 🚀</button>
-          <button class="btn btn-outline" onclick="createFreeBinGuide()">طريقة إنشاء المفتاح في دقيقة 📖</button>
+          <button class="btn btn-admin" onclick="saveCloudConfig()">إعادة اختبار الاتصال بالسحابة 🚀</button>
         </div>
         <p style="font-size: 12px; color: #64748b;">
-          💡 عند تفعيل الربط السحابي، يتم فحص وتحديث الإنجاز تلقائياً كل 5 ثوانٍ مع جميع الأجهزة المتصلة.
+          💡 يتم فحص وتحديث الإنجاز تلقائياً كل 3.5 ثانية مع جميع الأجهزة المتصلة.
         </p>
       </div>
 
@@ -584,7 +583,7 @@
           <h3>🔐 إدارة كلمات المرور والرموز السرية</h3>
         </div>
         <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px;">
-          يمكنك تغيير الرمز السري لحساب المشرف وحسابات الطالبتين:
+          يمكنك تغيير الرمز السري لحساب المشرف وحسابات الطالبتين (يُحفظ سحابياً فوراً):
         </p>
 
         <div class="form-grid-3">
@@ -655,10 +654,14 @@
   <div id="toast" class="toast-msg">تم الحفظ بنجاح</div>
 
   <script>
-    const STORAGE_KEY_AUTH = 'qudurat_auth_session_v8';
-    const STORAGE_KEY_CACHE = 'qudurat_offline_cache_v8';
-    const STORAGE_KEY_BIN_ID = 'qudurat_jsonbin_id_v8';
-    const STORAGE_KEY_MASTER_KEY = 'qudurat_jsonbin_key_v8';
+    const STORAGE_KEY_AUTH = 'qudurat_auth_session_v9';
+    const STORAGE_KEY_CACHE = 'qudurat_offline_cache_v9';
+    const STORAGE_KEY_BIN_ID = 'qudurat_jsonbin_id_v9';
+    const STORAGE_KEY_MASTER_KEY = 'qudurat_jsonbin_key_v9';
+
+    // المفاتيح المدمجة مسبقاً من الأستاذ عبدالله
+    const DEFAULT_EMBEDDED_BIN_ID = '6aa02fe0ac6210605ab442f7';
+    const DEFAULT_EMBEDDED_MASTER_KEY = '$2a$10$r9xTZLQyB.28lAMqqsZei.4EYfu0P7MBZ1kFOVJSVvjQS.w1PkOku';
 
     const DEFAULT_PINS = {
       jawan: '1234',
@@ -703,8 +706,8 @@
     let currentStudent = 'jawan';
     let editingDayIndex = -1;
 
-    let cloudBinId = '';
-    let cloudMasterKey = '';
+    let cloudBinId = DEFAULT_EMBEDDED_BIN_ID;
+    let cloudMasterKey = DEFAULT_EMBEDDED_MASTER_KEY;
     let pollingInterval = null;
     let lastKnownTimestamp = 0;
     let isPushing = false;
@@ -712,8 +715,8 @@
     function initCloudSync() {
       loadLocalBackup();
 
-      cloudBinId = localStorage.getItem(STORAGE_KEY_BIN_ID) || '';
-      cloudMasterKey = localStorage.getItem(STORAGE_KEY_MASTER_KEY) || '';
+      cloudBinId = localStorage.getItem(STORAGE_KEY_BIN_ID) || DEFAULT_EMBEDDED_BIN_ID;
+      cloudMasterKey = localStorage.getItem(STORAGE_KEY_MASTER_KEY) || DEFAULT_EMBEDDED_MASTER_KEY;
 
       const binInput = document.getElementById('binIdInput');
       const keyInput = document.getElementById('masterKeyInput');
@@ -722,8 +725,6 @@
 
       if (cloudBinId && cloudMasterKey) {
         testCloudConnection(true);
-      } else {
-        updateSyncIndicator('error', 'السحابة غير مفعلة ⚠️');
       }
 
       if (pollingInterval) clearInterval(pollingInterval);
@@ -731,7 +732,7 @@
         if (cloudBinId && cloudMasterKey && !isPushing) {
           fetchCloudData(true);
         }
-      }, 5000);
+      }, 3500);
     }
 
     async function testCloudConnection(silent = false) {
@@ -759,12 +760,13 @@
           if (remoteData && remoteData.appData) {
             applyRemoteData(remoteData);
           } else {
+            // أول مرة: تهيئة الحاوية ببيانات المنصة
             pushDataToCloud(true);
           }
 
-          if (!silent) showToast('✅ تم الاتصال بالسحابة بنجاح!');
+          if (!silent) showToast('✅ تم الاتصال بالسحابة بنجاح وبدء المزامنة!');
         } else {
-          throw new Error('Cloud returned non-ok status');
+          throw new Error('Cloud returned status ' + res.status);
         }
       } catch (err) {
         console.error('Cloud test failed:', err);
@@ -823,10 +825,7 @@
 
     async function pushDataToCloud(isSilent = false) {
       saveLocalBackup();
-      if (!cloudBinId || !cloudMasterKey) {
-        if (!isSilent) showToast('⚠️ التعديل محفوظ في ذاكرة المتصفح فقط');
-        return;
-      }
+      if (!cloudBinId || !cloudMasterKey) return;
 
       isPushing = true;
       updateSyncIndicator('syncing', 'إرسال التعديل للسحابة...');
@@ -942,10 +941,8 @@
 
     function manualSync() {
       if (cloudBinId && cloudMasterKey) {
-        showToast('جاري مزامنة البيانات مع السحابة...');
+        showToast('جاري جلب آخر التحديثات من السحابة...');
         fetchCloudData(false);
-      } else {
-        showToast('⚠️ يرجى تفعيل مفاتيح السحابة من لوحة المشرف');
       }
     }
 
@@ -997,7 +994,7 @@
         applySession(currentUserSession);
         document.getElementById('loginOverlay').classList.add('hidden');
         showToast(`أهلاً بك يا ${currentUserSession.name}! تم تسجيل الدخول.`);
-        pushDataToCloud(true);
+        fetchCloudData(true);
       } else {
         showToast('⚠️ الرمز السري غير صحيح، يرجى المحاولة مجدداً.');
         document.getElementById('loginPinInput').focus();
@@ -1150,6 +1147,7 @@
       addActivityLog(currentStudent, `${status} مقطع كمي ${index + 1}`);
       renderGrids();
       updateStats();
+      pushDataToCloud();
       showToast(`تم تحديث مقطع كمي ${index + 1}`);
     }
 
@@ -1160,6 +1158,7 @@
       addActivityLog(currentStudent, `${status} مقطع لفظي ${index + 1}`);
       renderGrids();
       updateStats();
+      pushDataToCloud();
       showToast(`تم تحديث مقطع لفظي ${index + 1}`);
     }
 
@@ -1182,6 +1181,7 @@
       addActivityLog(currentStudent, `${isChecked ? 'أكملت' : 'ألغت إكمال'} مهام ${currentSchedule[dayIndex]?.title || 'اليوم ' + dayNum}`);
       renderGrids();
       updateStats();
+      pushDataToCloud();
       showToast(`تم تحديث اليوم ${dayNum}`);
     }
 
@@ -1356,10 +1356,6 @@
       setTimeout(() => toast.classList.remove('show'), 3000);
     }
 
-    function createFreeBinGuide() {
-      alert("طريقة الحصول على المفاتيح في دقيقة واحدة مجاناً:\n\n1. ادخل موقع: jsonbin.io وسجل بحساب Google.\n2. اضغط Create Bin واكتب في الصندوق {} ثم اضغط Save Bin.\n3. انسخ الـ Bin ID من شريط العنوان.\n4. اذهب لصفحة API Keys وانسخ الـ Master Key.\n5. الصقهما في لوحة المشرف هنا واضغط حفظ!");
-    }
-
     let timerDuration = 25 * 60;
     let timerRemaining = 25 * 60;
     let timerInterval = null;
@@ -1440,7 +1436,6 @@
     window.refreshAdminStats = refreshAdminStats;
     window.manualSync = manualSync;
     window.saveCloudConfig = saveCloudConfig;
-    window.createFreeBinGuide = createFreeBinGuide;
 
     window.onload = function() {
       checkAuthSession();
