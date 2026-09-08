@@ -102,6 +102,8 @@
       margin-bottom: 16px;
       font-size: 13.5px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+      flex-wrap: wrap;
+      gap: 10px;
     }
 
     .user-info-tag {
@@ -118,12 +120,13 @@
       gap: 6px;
       font-size: 12px;
       font-weight: 700;
-      padding: 4px 10px;
+      padding: 5px 12px;
       border-radius: 999px;
       background: #f0fdf4;
       color: #166534;
       border: 1px solid #bbf7d0;
       transition: all 0.3s ease;
+      cursor: pointer;
     }
 
     .sync-status-indicator.syncing {
@@ -132,9 +135,15 @@
       border-color: #bfdbfe;
     }
 
+    .sync-status-indicator.error {
+      background: #fef2f2;
+      color: #991b1b;
+      border-color: #fecaca;
+    }
+
     .sync-dot {
-      width: 8px;
-      height: 8px;
+      width: 9px;
+      height: 9px;
       border-radius: 50%;
       background-color: #22c55e;
       display: inline-block;
@@ -143,6 +152,10 @@
     .syncing .sync-dot {
       background-color: #3b82f6;
       animation: pulse 1s infinite;
+    }
+
+    .error .sync-dot {
+      background-color: #ef4444;
     }
 
     @keyframes pulse {
@@ -929,11 +942,12 @@
         <span>مرحباً، <strong id="sessionUserName">جوان</strong></span>
         <span id="sessionRoleBadge" style="font-size: 11.5px; background: #e0f2fe; color: #0369a1; padding: 2px 8px; border-radius: 999px;">طالبة</span>
       </div>
-      <div style="display: flex; gap: 10px; align-items: center;">
-        <span id="syncStatusBadge" class="sync-status-indicator">
+      <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+        <span id="syncStatusBadge" class="sync-status-indicator" onclick="manualSync()" title="اضغط للتحديث الفوري">
           <span class="sync-dot"></span>
-          <span id="syncStatusText">سحابي متزامن</span>
+          <span id="syncStatusText">متصل بالسحابة 🟢</span>
         </span>
+        <button class="btn btn-outline" style="font-size: 12px; padding: 5px 10px;" onclick="manualSync()">مزامنة فورية 🔄</button>
         <span id="sessionLoginTime" style="font-size: 12px; color: #94a3b8;"></span>
         <button class="logout-btn" onclick="logoutUser()">تسجيل الخروج 🚪</button>
       </div>
@@ -1122,6 +1136,25 @@
         </div>
       </div>
 
+      <!-- Cloud Room Settings -->
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <h3>☁️ إعدادات المزامنة السحابية الحية (Live Cloud Sync)</h3>
+          <span id="adminRoomBadge" style="font-size: 12px; font-weight: 700; background: #e0f2fe; color: #0369a1; padding: 4px 10px; border-radius: 8px;">الغرفة الحالية نشطة</span>
+        </div>
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px;">
+          هذا المعرّف هو القناة السحابية المشتركة بين آيباد الأستاذ وهواتف الطالبتين (جوان وفجر). يجب أن يكون نفس الرمز في جميع الأجهزة لربطها ببعضها فوراً.
+        </p>
+        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 12px;">
+          <input type="text" id="inputRoomId" class="form-control" style="max-width: 320px; direction: ltr; font-weight: bold; letter-spacing: 1px;" value="qudurat-abdullah-2026">
+          <button class="btn btn-admin" onclick="updateCloudRoom()">حفظ وتغيير الغرفة 💾</button>
+          <button class="btn btn-outline" onclick="testCloudConnection()">اختبار الاتصال السحابي 📡</button>
+        </div>
+        <p style="font-size: 12px; color: #64748b;">
+          💡 <strong>ملاحظة:</strong> المزامنة تعمل تلقائياً في الخلفية لحظة بلحظة بمجرد الضغط على أي مقطع أو تعديل اليوم.
+        </p>
+      </div>
+
       <!-- Change Passwords / PINs -->
       <div class="admin-card">
         <div class="admin-card-header">
@@ -1205,11 +1238,11 @@
   <div id="toast" class="toast-msg">تم الحفظ بنجاح</div>
 
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    const STORAGE_KEY_AUTH = 'qudurat_auth_session_v5';
+    const STORAGE_KEY_CACHE = 'qudurat_offline_cache_v5';
+    const STORAGE_KEY_ROOM = 'qudurat_cloud_room_id_v5';
 
-    const STORAGE_KEY_AUTH = 'qudurat_auth_session_v4';
+    let CLOUD_ROOM = localStorage.getItem(STORAGE_KEY_ROOM) || 'qudurat-abdullah-2026';
 
     const DEFAULT_PINS = {
       jawan: '1234',
@@ -1234,10 +1267,7 @@
     ];
 
     let currentSchedule = JSON.parse(JSON.stringify(DEFAULT_SCHEDULE));
-
-    const DEFAULT_NOTE = 'استمروا في الالتزام اليومي يا جوان وفجر، حل التمارين بيدك هو مفتاح الـ +95 بإذن الله!';
-    let teacherNote = DEFAULT_NOTE;
-
+    let teacherNote = 'استمروا في الالتزام اليومي يا جوان وفجر، حل التمارين بيدك هو مفتاح الـ +95 بإذن الله!';
     let activityLogs = [];
 
     const createDefaultStudentData = () => ({
@@ -1257,79 +1287,128 @@
     let currentStudent = 'jawan';
     let editingDayIndex = -1;
 
-    let db = null;
-    let auth = null;
-    let authUser = null;
-    let stateDocRef = null;
-    let isPushingCloud = false;
+    let isBroadcasting = false;
+    let sseEventSource = null;
+    let lastKnownVersion = 0;
+    const clientId = 'client_' + Math.random().toString(36).substring(2, 9);
 
-    async function initCloudDatabase() {
-      const appId = typeof __app_id !== 'undefined' ? __app_id : 'qudurat-study-platform';
-      const syncText = document.getElementById('syncStatusText');
-      const syncBadge = document.getElementById('syncStatusBadge');
+    async function initUniversalSync() {
+      const roomInput = document.getElementById('inputRoomId');
+      if (roomInput) roomInput.value = CLOUD_ROOM;
 
-      if (typeof __firebase_config === 'undefined') {
-        if (syncText) syncText.innerText = 'حفظ محلي (تأكد من إعدادات الربط)';
-        return;
-      }
+      loadLocalBackup();
+      await fetchLatestCloudState();
+      connectRealtimeStream();
 
-      try {
-        if (syncBadge) syncBadge.classList.add('syncing');
-        if (syncText) syncText.innerText = 'جارِ الاتصال بالسحابة...';
-
-        const firebaseConfig = JSON.parse(__firebase_config);
-        const app = initializeApp(firebaseConfig);
-        auth = getAuth(app);
-        db = getFirestore(app);
-
-        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-          await signInWithCustomToken(auth, __initial_auth_token);
-        } else {
-          await signInAnonymously(auth);
+      // Poll as backup every 8 seconds in case browser tab suspends SSE
+      setInterval(() => {
+        if (!document.hidden) {
+          fetchLatestCloudState(true);
         }
+      }, 8000);
+    }
 
-        authUser = auth.currentUser;
-        if (!authUser) return;
+    function updateSyncIndicator(status, text) {
+      const badge = document.getElementById('syncStatusBadge');
+      const label = document.getElementById('syncStatusText');
+      if (!badge || !label) return;
 
-        stateDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'platform_state', 'shared_data');
-
-        onSnapshot(stateDocRef, (docSnap) => {
-          if (docSnap.exists()) {
-            const remoteData = docSnap.data();
-            applyRemoteState(remoteData);
-          } else {
-            pushCloudState();
-          }
-          if (syncBadge) syncBadge.classList.remove('syncing');
-          if (syncText) syncText.innerText = 'متزامن سحابياً 🟢';
-        }, (error) => {
-          console.warn("Cloud Sync Error:", error);
-          if (syncBadge) syncBadge.classList.remove('syncing');
-          if (syncText) syncText.innerText = 'خطأ مزامنة';
-        });
-
-      } catch (err) {
-        console.error("Cloud DB Init failed:", err);
-        if (syncBadge) syncBadge.classList.remove('syncing');
-        if (syncText) syncText.innerText = 'غير متصل بالسحابة';
+      badge.className = 'sync-status-indicator';
+      if (status === 'syncing') {
+        badge.classList.add('syncing');
+        label.innerText = text || 'جارِ التزامن السحابي...';
+      } else if (status === 'online') {
+        label.innerText = text || 'متصل بالسحابة 🟢';
+      } else if (status === 'error') {
+        badge.classList.add('error');
+        label.innerText = text || 'إعادة الاتصال... 🟡';
       }
     }
 
-    function applyRemoteState(data) {
-      if (isPushingCloud) return;
-
-      if (data.appData) appData = data.appData;
-      if (data.currentSchedule) currentSchedule = data.currentSchedule;
-      if (data.teacherNote) {
-        teacherNote = data.teacherNote;
-        document.getElementById('teacherNoteText').innerText = teacherNote;
-        const noteInput = document.getElementById('adminTeacherNoteInput');
-        if (noteInput && document.activeElement !== noteInput) {
-          noteInput.value = teacherNote;
-        }
+    function connectRealtimeStream() {
+      if (sseEventSource) {
+        try { sseEventSource.close(); } catch(e) {}
       }
-      if (data.userPins) {
-        userPins = { ...DEFAULT_PINS, ...data.userPins };
+
+      const streamUrl = `https://ntfy.sh/${encodeURIComponent(CLOUD_ROOM)}/sse`;
+      try {
+        sseEventSource = new EventSource(streamUrl);
+
+        sseEventSource.onopen = () => {
+          updateSyncIndicator('online', 'متصل بالسحابة 🟢');
+        };
+
+        sseEventSource.onmessage = (event) => {
+          try {
+            const parsed = JSON.parse(event.data);
+            if (parsed && parsed.message) {
+              const payload = JSON.parse(parsed.message);
+              if (payload && payload.senderId !== clientId) {
+                applyIncomingRemoteState(payload);
+              }
+            }
+          } catch (err) {
+            // Ignore non-json or keepalive messages
+          }
+        };
+
+        sseEventSource.onerror = () => {
+          updateSyncIndicator('error', 'إعادة الاتصال بالسحابة... 🟡');
+        };
+      } catch (err) {
+        console.warn('SSE connect error:', err);
+      }
+    }
+
+    async function fetchLatestCloudState(isSilent = false) {
+      if (!isSilent) updateSyncIndicator('syncing', 'جلب أحدث نسخة سحابية...');
+      const pollUrl = `https://ntfy.sh/${encodeURIComponent(CLOUD_ROOM)}/json?poll=1`;
+
+      try {
+        const response = await fetch(pollUrl);
+        if (!response.ok) throw new Error('Poll failed');
+        const text = await response.text();
+        if (!text) {
+          if (!isSilent) updateSyncIndicator('online');
+          return;
+        }
+
+        const lines = text.trim().split('\n');
+        for (let i = lines.length - 1; i >= 0; i--) {
+          try {
+            const item = JSON.parse(lines[i]);
+            if (item && item.message) {
+              const payload = JSON.parse(item.message);
+              if (payload && payload.timestamp && payload.timestamp > lastKnownVersion) {
+                applyIncomingRemoteState(payload);
+                break;
+              }
+            }
+          } catch(e) {}
+        }
+        if (!isSilent) updateSyncIndicator('online');
+      } catch (e) {
+        if (!isSilent) updateSyncIndicator('online', 'سحابي (محلي نشط) 🟢');
+      }
+    }
+
+    function applyIncomingRemoteState(payload) {
+      if (!payload || payload.senderId === clientId) return;
+
+      if (payload.timestamp && payload.timestamp <= lastKnownVersion) return;
+      lastKnownVersion = payload.timestamp || Date.now();
+
+      if (payload.appData) appData = payload.appData;
+      if (payload.currentSchedule) currentSchedule = payload.currentSchedule;
+      if (payload.teacherNote) {
+        teacherNote = payload.teacherNote;
+        const noteEl = document.getElementById('teacherNoteText');
+        if (noteEl) noteEl.innerText = teacherNote;
+        const noteInp = document.getElementById('adminTeacherNoteInput');
+        if (noteInp && document.activeElement !== noteInp) noteInp.value = teacherNote;
+      }
+      if (payload.userPins) {
+        userPins = { ...DEFAULT_PINS, ...payload.userPins };
         const pinT = document.getElementById('pinInputTeacher');
         const pinJ = document.getElementById('pinInputJawan');
         const pinF = document.getElementById('pinInputFajr');
@@ -1337,45 +1416,122 @@
         if (pinJ && document.activeElement !== pinJ) pinJ.value = userPins.jawan;
         if (pinF && document.activeElement !== pinF) pinF.value = userPins.fajr;
       }
-      if (data.activityLogs) activityLogs = data.activityLogs;
+      if (payload.activityLogs) activityLogs = payload.activityLogs;
 
+      saveLocalBackup();
       renderAll();
+
+      if (payload.authorName) {
+        showToast(`⚡ تحديث سحابي مباشر من: ${payload.authorName}`);
+      }
     }
 
-    async function pushCloudState() {
-      if (!stateDocRef || !authUser) return;
+    async function broadcastCloudState() {
+      updateSyncIndicator('syncing', 'إرسال التعديل للأجهزة...');
+      const timestamp = Date.now();
+      lastKnownVersion = timestamp;
 
-      const syncBadge = document.getElementById('syncStatusBadge');
-      const syncText = document.getElementById('syncStatusText');
-      if (syncBadge) syncBadge.classList.add('syncing');
-      if (syncText) syncText.innerText = 'جارِ التزامن...';
+      const payload = {
+        senderId: clientId,
+        authorName: currentUserSession ? currentUserSession.name : 'مستخدم',
+        timestamp: timestamp,
+        appData,
+        currentSchedule,
+        teacherNote,
+        userPins,
+        activityLogs
+      };
 
-      isPushingCloud = true;
+      saveLocalBackup();
+
       try {
-        await setDoc(stateDocRef, {
+        await fetch(`https://ntfy.sh/${encodeURIComponent(CLOUD_ROOM)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        updateSyncIndicator('online', 'متزامن مع جميع الأجهزة 🟢');
+      } catch (err) {
+        console.error('Broadcast failed:', err);
+        updateSyncIndicator('online', 'محفوظ محلياً ومؤجل سحابياً');
+      }
+    }
+
+    function saveLocalBackup() {
+      try {
+        const cacheObj = {
           appData,
           currentSchedule,
           teacherNote,
           userPins,
           activityLogs,
-          lastSyncAt: new Date().toISOString()
-        }, { merge: true });
+          timestamp: lastKnownVersion
+        };
+        localStorage.setItem(STORAGE_KEY_CACHE, JSON.stringify(cacheObj));
+      } catch (e) {}
+    }
 
-        if (syncBadge) syncBadge.classList.remove('syncing');
-        if (syncText) syncText.innerText = 'متزامن سحابياً 🟢';
-      } catch (err) {
-        console.error("Error pushing state to cloud:", err);
-      } finally {
-        setTimeout(() => { isPushingCloud = false; }, 300);
+    function loadLocalBackup() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_CACHE);
+        if (raw) {
+          const cached = JSON.parse(raw);
+          if (cached.appData) appData = cached.appData;
+          if (cached.currentSchedule) currentSchedule = cached.currentSchedule;
+          if (cached.teacherNote) {
+            teacherNote = cached.teacherNote;
+            const noteEl = document.getElementById('teacherNoteText');
+            if (noteEl) noteEl.innerText = teacherNote;
+          }
+          if (cached.userPins) userPins = { ...DEFAULT_PINS, ...cached.userPins };
+          if (cached.activityLogs) activityLogs = cached.activityLogs;
+          if (cached.timestamp) lastKnownVersion = cached.timestamp;
+        }
+      } catch (e) {}
+    }
+
+    function manualSync() {
+      showToast('جاري طلب أحدث البيانات من السحابة...');
+      fetchLatestCloudState();
+      broadcastCloudState();
+    }
+
+    function updateCloudRoom() {
+      const input = document.getElementById('inputRoomId');
+      const val = input ? input.value.trim() : '';
+      if (!val) {
+        showToast('يرجى إدخال اسم صحيح للغرفة');
+        return;
+      }
+      CLOUD_ROOM = val;
+      localStorage.setItem(STORAGE_KEY_ROOM, CLOUD_ROOM);
+      connectRealtimeStream();
+      fetchLatestCloudState();
+      showToast(`تم تغيير الغرفة السحابية إلى: ${CLOUD_ROOM}`);
+    }
+
+    async function testCloudConnection() {
+      showToast('جاري إرسال إشارة فحص سحابية...');
+      const start = Date.now();
+      try {
+        await fetch(`https://ntfy.sh/${encodeURIComponent(CLOUD_ROOM)}`, {
+          method: 'POST',
+          headers: { 'Title': 'Ping Test' },
+          body: JSON.stringify({ senderId: clientId, type: 'ping', time: start })
+        });
+        const latency = Date.now() - start;
+        showToast(`✅ الاتصال ممتاز! زمن الاستجابة السحابية: ${latency} مللي ثانية`);
+      } catch (e) {
+        showToast('❌ تعذر الاتصال بالسحابة، تحقق من اتصال الإنترنت');
       }
     }
 
     function addActivityLog(studentKey, text) {
       const name = studentKey === 'jawan' ? 'جوان' : 'فجر';
-      const timeStr = new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' }) + ' - ' + new Date().toLocaleDateString('ar-SA');
+      const timeStr = new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' });
       activityLogs.unshift({ student: name, role: studentKey, action: text, time: timeStr });
-      if (activityLogs.length > 50) activityLogs.pop();
-      pushCloudState();
+      if (activityLogs.length > 30) activityLogs.pop();
+      broadcastCloudState();
       renderLogs();
     }
 
@@ -1418,6 +1574,7 @@
         applySession(currentUserSession);
         document.getElementById('loginOverlay').classList.add('hidden');
         showToast(`أهلاً بك يا ${currentUserSession.name}! تم تسجيل الدخول بنجاح.`);
+        broadcastCloudState();
       } else {
         showToast('⚠️ الرمز السري غير صحيح، يرجى المحاولة مجدداً.');
         document.getElementById('loginPinInput').focus();
@@ -1568,7 +1725,7 @@
       studentData.quantDone[index] = !studentData.quantDone[index];
       const status = studentData.quantDone[index] ? 'أنجزت' : 'ألغت إنجاز';
       addActivityLog(currentStudent, `${status} مقطع كمي ${index + 1}`);
-      pushCloudState();
+      broadcastCloudState();
       renderGrids();
       updateStats();
       showToast(`تم تحديث مقطع كمي ${index + 1}`);
@@ -1579,7 +1736,7 @@
       studentData.verbalDone[index] = !studentData.verbalDone[index];
       const status = studentData.verbalDone[index] ? 'أنجزت' : 'ألغت إنجاز';
       addActivityLog(currentStudent, `${status} مقطع لفظي ${index + 1}`);
-      pushCloudState();
+      broadcastCloudState();
       renderGrids();
       updateStats();
       showToast(`تم تحديث مقطع لفظي ${index + 1}`);
@@ -1602,7 +1759,7 @@
       }
 
       addActivityLog(currentStudent, `${isChecked ? 'أكملت' : 'ألغت إكمال'} مهام ${currentSchedule[dayIndex]?.title || 'اليوم ' + dayNum}`);
-      pushCloudState();
+      broadcastCloudState();
       renderGrids();
       updateStats();
       showToast(`تم تحديث اليوم ${dayNum}`);
@@ -1663,7 +1820,7 @@
     function adminResetStudent(studentKey) {
       const name = studentKey === 'jawan' ? 'جوان' : 'فجر';
       appData[studentKey] = createDefaultStudentData();
-      pushCloudState();
+      broadcastCloudState();
       renderAll();
       showToast(`تم تصفير إنجاز الطالبة: ${name}`);
     }
@@ -1686,8 +1843,8 @@
       userPins.jawan = jPin;
       userPins.fajr = fPin;
 
-      pushCloudState();
-      showToast('✅ تم حفظ كلمات المرور والمزامنة سحابياً');
+      broadcastCloudState();
+      showToast('✅ تم حفظ كلمات المرور وبثها سحابياً لجميع الأجهزة');
     }
 
     function saveTeacherNote() {
@@ -1695,8 +1852,8 @@
       if (!text) return;
       teacherNote = text;
       document.getElementById('teacherNoteText').innerText = teacherNote;
-      pushCloudState();
-      showToast('✅ تم تحديث ونشر توجيه الأستاذ للجميع');
+      broadcastCloudState();
+      showToast('✅ تم نشر وتحديث توجيه الأستاذ فوراً لجميع الأجهزة');
     }
 
     function openEditModal(index) {
@@ -1722,17 +1879,17 @@
       currentSchedule[editingDayIndex].verbal = document.getElementById('editDayVerbal').value.trim();
       currentSchedule[editingDayIndex].task = document.getElementById('editDayTask').value.trim();
 
-      pushCloudState();
+      broadcastCloudState();
       closeEditModal();
       renderScheduleTable();
-      showToast('✅ تم حفظ تعديل اليوم ومزامنته سحابياً');
+      showToast('✅ تم حفظ تعديل اليوم ومزامنته مع الجميع');
     }
 
     function restoreDefaultSchedule() {
       currentSchedule = JSON.parse(JSON.stringify(DEFAULT_SCHEDULE));
-      pushCloudState();
+      broadcastCloudState();
       renderScheduleTable();
-      showToast('تمت استعادة الجدول الأساسي المعتمد');
+      showToast('تمت استعادة الجدول الأساسي المعتمد للجميع');
     }
 
     function selectStudent(studentKey) {
@@ -1776,7 +1933,7 @@
       const toast = document.getElementById('toast');
       toast.innerText = text;
       toast.classList.add('show');
-      setTimeout(() => toast.classList.remove('show'), 2500);
+      setTimeout(() => toast.classList.remove('show'), 3000);
     }
 
     let timerDuration = 25 * 60;
@@ -1857,11 +2014,14 @@
     window.toggleTimer = toggleTimer;
     window.resetTimer = resetTimer;
     window.refreshAdminStats = refreshAdminStats;
+    window.manualSync = manualSync;
+    window.updateCloudRoom = updateCloudRoom;
+    window.testCloudConnection = testCloudConnection;
 
     window.onload = function() {
       checkAuthSession();
       renderAll();
-      initCloudDatabase();
+      initUniversalSync();
     };
   </script>
 </body>
