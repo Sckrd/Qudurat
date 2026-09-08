@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -99,7 +98,7 @@
       background: #ffffff;
       padding: 12px 18px;
       border-radius: 12px;
-      border: 1px solid var(--border-color);
+      border: 1.5px solid var(--border-color);
       margin-bottom: 16px;
       font-size: 13.5px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.03);
@@ -111,6 +110,45 @@
       gap: 10px;
       font-weight: 700;
       color: #0f172a;
+    }
+
+    .sync-status-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #f0fdf4;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+      transition: all 0.3s ease;
+    }
+
+    .sync-status-indicator.syncing {
+      background: #eff6ff;
+      color: #1d4ed8;
+      border-color: #bfdbfe;
+    }
+
+    .sync-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #22c55e;
+      display: inline-block;
+    }
+
+    .syncing .sync-dot {
+      background-color: #3b82f6;
+      animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.9); opacity: 0.7; }
+      50% { transform: scale(1.3); opacity: 1; }
+      100% { transform: scale(0.9); opacity: 0.7; }
     }
 
     .logout-btn {
@@ -892,6 +930,10 @@
         <span id="sessionRoleBadge" style="font-size: 11.5px; background: #e0f2fe; color: #0369a1; padding: 2px 8px; border-radius: 999px;">طالبة</span>
       </div>
       <div style="display: flex; gap: 10px; align-items: center;">
+        <span id="syncStatusBadge" class="sync-status-indicator">
+          <span class="sync-dot"></span>
+          <span id="syncStatusText">سحابي متزامن</span>
+        </span>
         <span id="sessionLoginTime" style="font-size: 12px; color: #94a3b8;"></span>
         <button class="logout-btn" onclick="logoutUser()">تسجيل الخروج 🚪</button>
       </div>
@@ -1162,13 +1204,12 @@
 
   <div id="toast" class="toast-msg">تم الحفظ بنجاح</div>
 
-  <script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
     const STORAGE_KEY_AUTH = 'qudurat_auth_session_v4';
-    const STORAGE_KEY_PINS = 'qudurat_pins_v4';
-    const STORAGE_KEY_PROGRESS = 'qudurat_progress_v4';
-    const STORAGE_KEY_SCHEDULE = 'qudurat_schedule_custom_v4';
-    const STORAGE_KEY_NOTE = 'qudurat_teacher_note_v4';
-    const STORAGE_KEY_LOGS = 'qudurat_activity_logs_v4';
 
     const DEFAULT_PINS = {
       jawan: '1234',
@@ -1216,46 +1257,117 @@
     let currentStudent = 'jawan';
     let editingDayIndex = -1;
 
-    function loadSavedState() {
-      try {
-        const savedPins = localStorage.getItem(STORAGE_KEY_PINS);
-        if (savedPins) userPins = { ...DEFAULT_PINS, ...JSON.parse(savedPins) };
+    let db = null;
+    let auth = null;
+    let authUser = null;
+    let stateDocRef = null;
+    let isPushingCloud = false;
 
-        const savedProgress = localStorage.getItem(STORAGE_KEY_PROGRESS);
-        if (savedProgress) appData = JSON.parse(savedProgress);
+    async function initCloudDatabase() {
+      const appId = typeof __app_id !== 'undefined' ? __app_id : 'qudurat-study-platform';
+      const syncText = document.getElementById('syncStatusText');
+      const syncBadge = document.getElementById('syncStatusBadge');
 
-        const savedSchedule = localStorage.getItem(STORAGE_KEY_SCHEDULE);
-        if (savedSchedule) currentSchedule = JSON.parse(savedSchedule);
-
-        const savedNote = localStorage.getItem(STORAGE_KEY_NOTE);
-        if (savedNote) teacherNote = savedNote;
-
-        const savedLogs = localStorage.getItem(STORAGE_KEY_LOGS);
-        if (savedLogs) activityLogs = JSON.parse(savedLogs);
-      } catch (e) {
-        console.error('State load error:', e);
+      if (typeof __firebase_config === 'undefined') {
+        if (syncText) syncText.innerText = 'حفظ محلي (تأكد من إعدادات الربط)';
+        return;
       }
 
-      document.getElementById('teacherNoteText').innerText = teacherNote;
-      document.getElementById('adminTeacherNoteInput').value = teacherNote;
-      document.getElementById('pinInputTeacher').value = userPins.teacher;
-      document.getElementById('pinInputJawan').value = userPins.jawan;
-      document.getElementById('pinInputFajr').value = userPins.fajr;
+      try {
+        if (syncBadge) syncBadge.classList.add('syncing');
+        if (syncText) syncText.innerText = 'جارِ الاتصال بالسحابة...';
+
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const app = initializeApp(firebaseConfig);
+        auth = getAuth(app);
+        db = getFirestore(app);
+
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(auth);
+        }
+
+        authUser = auth.currentUser;
+        if (!authUser) return;
+
+        stateDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'platform_state', 'shared_data');
+
+        onSnapshot(stateDocRef, (docSnap) => {
+          if (docSnap.exists()) {
+            const remoteData = docSnap.data();
+            applyRemoteState(remoteData);
+          } else {
+            pushCloudState();
+          }
+          if (syncBadge) syncBadge.classList.remove('syncing');
+          if (syncText) syncText.innerText = 'متزامن سحابياً 🟢';
+        }, (error) => {
+          console.warn("Cloud Sync Error:", error);
+          if (syncBadge) syncBadge.classList.remove('syncing');
+          if (syncText) syncText.innerText = 'خطأ مزامنة';
+        });
+
+      } catch (err) {
+        console.error("Cloud DB Init failed:", err);
+        if (syncBadge) syncBadge.classList.remove('syncing');
+        if (syncText) syncText.innerText = 'غير متصل بالسحابة';
+      }
     }
 
-    function saveProgress() {
-      try {
-        localStorage.setItem(STORAGE_KEY_PROGRESS, JSON.stringify(appData));
-      } catch (e) {}
-      updateStats();
-      refreshAdminStats();
+    function applyRemoteState(data) {
+      if (isPushingCloud) return;
+
+      if (data.appData) appData = data.appData;
+      if (data.currentSchedule) currentSchedule = data.currentSchedule;
+      if (data.teacherNote) {
+        teacherNote = data.teacherNote;
+        document.getElementById('teacherNoteText').innerText = teacherNote;
+        const noteInput = document.getElementById('adminTeacherNoteInput');
+        if (noteInput && document.activeElement !== noteInput) {
+          noteInput.value = teacherNote;
+        }
+      }
+      if (data.userPins) {
+        userPins = { ...DEFAULT_PINS, ...data.userPins };
+        const pinT = document.getElementById('pinInputTeacher');
+        const pinJ = document.getElementById('pinInputJawan');
+        const pinF = document.getElementById('pinInputFajr');
+        if (pinT && document.activeElement !== pinT) pinT.value = userPins.teacher;
+        if (pinJ && document.activeElement !== pinJ) pinJ.value = userPins.jawan;
+        if (pinF && document.activeElement !== pinF) pinF.value = userPins.fajr;
+      }
+      if (data.activityLogs) activityLogs = data.activityLogs;
+
+      renderAll();
     }
 
-    function saveScheduleState() {
+    async function pushCloudState() {
+      if (!stateDocRef || !authUser) return;
+
+      const syncBadge = document.getElementById('syncStatusBadge');
+      const syncText = document.getElementById('syncStatusText');
+      if (syncBadge) syncBadge.classList.add('syncing');
+      if (syncText) syncText.innerText = 'جارِ التزامن...';
+
+      isPushingCloud = true;
       try {
-        localStorage.setItem(STORAGE_KEY_SCHEDULE, JSON.stringify(currentSchedule));
-      } catch (e) {}
-      renderScheduleTable();
+        await setDoc(stateDocRef, {
+          appData,
+          currentSchedule,
+          teacherNote,
+          userPins,
+          activityLogs,
+          lastSyncAt: new Date().toISOString()
+        }, { merge: true });
+
+        if (syncBadge) syncBadge.classList.remove('syncing');
+        if (syncText) syncText.innerText = 'متزامن سحابياً 🟢';
+      } catch (err) {
+        console.error("Error pushing state to cloud:", err);
+      } finally {
+        setTimeout(() => { isPushingCloud = false; }, 300);
+      }
     }
 
     function addActivityLog(studentKey, text) {
@@ -1263,9 +1375,7 @@
       const timeStr = new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' }) + ' - ' + new Date().toLocaleDateString('ar-SA');
       activityLogs.unshift({ student: name, role: studentKey, action: text, time: timeStr });
       if (activityLogs.length > 50) activityLogs.pop();
-      try {
-        localStorage.setItem(STORAGE_KEY_LOGS, JSON.stringify(activityLogs));
-      } catch (e) {}
+      pushCloudState();
       renderLogs();
     }
 
@@ -1380,9 +1490,10 @@
 
     function renderScheduleTable() {
       const tbody = document.getElementById('scheduleTableBody');
+      if (!tbody) return;
       tbody.innerHTML = '';
       const isTeacher = currentUserSession && currentUserSession.role === 'teacher';
-      const studentData = appData[currentStudent];
+      const studentData = appData[currentStudent] || createDefaultStudentData();
 
       currentSchedule.forEach((item, index) => {
         const tr = document.createElement('tr');
@@ -1390,11 +1501,11 @@
 
         let editBtnHtml = '';
         if (isTeacher) {
-          editBtnHtml = `<td><button class="btn btn-outline" style="padding: 4px 8px; font-size: 12px;" onclick="openEditModal(${index})">تعديل ✏️</button></td>`;
+          editBtnHtml = `<td><button class="btn btn-outline" style="padding: 4px 8px; font-size: 12px;" onclick="window.openEditModal(${index})">تعديل ✏️</button></td>`;
         }
 
         tr.innerHTML = `
-          <td><input type="checkbox" class="action-checkbox day-check" ${isDone ? 'checked' : ''} onchange="toggleDay(${index + 1}, this.checked)"></td>
+          <td><input type="checkbox" class="action-checkbox day-check" ${isDone ? 'checked' : ''} onchange="window.toggleDay(${index + 1}, this.checked)"></td>
           <td><span class="day-badge">${item.title}</span></td>
           <td><span class="badge-quant">${item.quant}</span></td>
           <td><span class="badge-verbal">${item.verbal}</span></td>
@@ -1406,27 +1517,31 @@
     }
 
     function renderGrids() {
-      const studentData = appData[currentStudent];
+      const studentData = appData[currentStudent] || createDefaultStudentData();
       const qGrid = document.getElementById('quantGrid');
-      qGrid.innerHTML = '';
-      for (let i = 0; i < 9; i++) {
-        const isDone = studentData.quantDone[i];
-        const chip = document.createElement('div');
-        chip.className = 'video-chip' + (isDone ? ' done' : '');
-        chip.innerHTML = `<input type="checkbox" ${isDone ? 'checked' : ''} style="accent-color: #2563eb;"> مقطع كمي ${i + 1}`;
-        chip.onclick = () => toggleQuant(i);
-        qGrid.appendChild(chip);
+      if (qGrid) {
+        qGrid.innerHTML = '';
+        for (let i = 0; i < 9; i++) {
+          const isDone = studentData.quantDone[i];
+          const chip = document.createElement('div');
+          chip.className = 'video-chip' + (isDone ? ' done' : '');
+          chip.innerHTML = `<input type="checkbox" ${isDone ? 'checked' : ''} style="accent-color: #2563eb;"> مقطع كمي ${i + 1}`;
+          chip.onclick = () => toggleQuant(i);
+          qGrid.appendChild(chip);
+        }
       }
 
       const vGrid = document.getElementById('verbalGrid');
-      vGrid.innerHTML = '';
-      for (let i = 0; i < 18; i++) {
-        const isDone = studentData.verbalDone[i];
-        const chip = document.createElement('div');
-        chip.className = 'video-chip' + (isDone ? ' done' : '');
-        chip.innerHTML = `<input type="checkbox" ${isDone ? 'checked' : ''} style="accent-color: #059669;"> مقطع لفظي ${i + 1}`;
-        chip.onclick = () => toggleVerbal(i);
-        vGrid.appendChild(chip);
+      if (vGrid) {
+        vGrid.innerHTML = '';
+        for (let i = 0; i < 18; i++) {
+          const isDone = studentData.verbalDone[i];
+          const chip = document.createElement('div');
+          chip.className = 'video-chip' + (isDone ? ' done' : '');
+          chip.innerHTML = `<input type="checkbox" ${isDone ? 'checked' : ''} style="accent-color: #059669;"> مقطع لفظي ${i + 1}`;
+          chip.onclick = () => toggleVerbal(i);
+          vGrid.appendChild(chip);
+        }
       }
     }
 
@@ -1453,8 +1568,9 @@
       studentData.quantDone[index] = !studentData.quantDone[index];
       const status = studentData.quantDone[index] ? 'أنجزت' : 'ألغت إنجاز';
       addActivityLog(currentStudent, `${status} مقطع كمي ${index + 1}`);
-      saveProgress();
+      pushCloudState();
       renderGrids();
+      updateStats();
       showToast(`تم تحديث مقطع كمي ${index + 1}`);
     }
 
@@ -1463,8 +1579,9 @@
       studentData.verbalDone[index] = !studentData.verbalDone[index];
       const status = studentData.verbalDone[index] ? 'أنجزت' : 'ألغت إنجاز';
       addActivityLog(currentStudent, `${status} مقطع لفظي ${index + 1}`);
-      saveProgress();
+      pushCloudState();
       renderGrids();
+      updateStats();
       showToast(`تم تحديث مقطع لفظي ${index + 1}`);
     }
 
@@ -1485,18 +1602,20 @@
       }
 
       addActivityLog(currentStudent, `${isChecked ? 'أكملت' : 'ألغت إكمال'} مهام ${currentSchedule[dayIndex]?.title || 'اليوم ' + dayNum}`);
-      saveProgress();
+      pushCloudState();
       renderGrids();
+      updateStats();
       showToast(`تم تحديث اليوم ${dayNum}`);
     }
 
     function calculateStudentPercent(data) {
+      if (!data) return 0;
       const totalDone = data.quantDone.filter(Boolean).length + data.verbalDone.filter(Boolean).length;
       return Math.round((totalDone / 27) * 100);
     }
 
     function updateStats() {
-      const studentData = appData[currentStudent];
+      const studentData = appData[currentStudent] || createDefaultStudentData();
       const qDoneCount = studentData.quantDone.filter(Boolean).length;
       const vDoneCount = studentData.verbalDone.filter(Boolean).length;
       const totalDone = qDoneCount + vDoneCount;
@@ -1505,24 +1624,25 @@
       const vPercent = Math.round((vDoneCount / 18) * 100);
       const overallPercent = Math.round((totalDone / 27) * 100);
 
-      document.getElementById('quantStats').innerText = `${qDoneCount} / 9`;
-      document.getElementById('quantBar').style.width = `${qPercent}%`;
+      const el = id => document.getElementById(id);
+      if (el('quantStats')) el('quantStats').innerText = `${qDoneCount} / 9`;
+      if (el('quantBar')) el('quantBar').style.width = `${qPercent}%`;
 
-      document.getElementById('verbalStats').innerText = `${vDoneCount} / 18`;
-      document.getElementById('verbalBar').style.width = `${vPercent}%`;
+      if (el('verbalStats')) el('verbalStats').innerText = `${vDoneCount} / 18`;
+      if (el('verbalBar')) el('verbalBar').style.width = `${vPercent}%`;
 
-      document.getElementById('overallStats').innerText = `${overallPercent}%`;
-      document.getElementById('overallBar').style.width = `${overallPercent}%`;
+      if (el('overallStats')) el('overallStats').innerText = `${overallPercent}%`;
+      if (el('overallBar')) el('overallBar').style.width = `${overallPercent}%`;
 
       const jawanPercent = calculateStudentPercent(appData.jawan);
       const fajrPercent = calculateStudentPercent(appData.fajr);
-      document.getElementById('jawanBadgePercent').innerText = `${jawanPercent}%`;
-      document.getElementById('fajrBadgePercent').innerText = `${fajrPercent}%`;
+      if (el('jawanBadgePercent')) el('jawanBadgePercent').innerText = `${jawanPercent}%`;
+      if (el('fajrBadgePercent')) el('fajrBadgePercent').innerText = `${fajrPercent}%`;
     }
 
     function refreshAdminStats() {
-      const jDone = appData.jawan;
-      const fDone = appData.fajr;
+      const jDone = appData.jawan || createDefaultStudentData();
+      const fDone = appData.fajr || createDefaultStudentData();
 
       const jPercent = calculateStudentPercent(jDone);
       const fPercent = calculateStudentPercent(fDone);
@@ -1543,7 +1663,7 @@
     function adminResetStudent(studentKey) {
       const name = studentKey === 'jawan' ? 'جوان' : 'فجر';
       appData[studentKey] = createDefaultStudentData();
-      saveProgress();
+      pushCloudState();
       renderAll();
       showToast(`تم تصفير إنجاز الطالبة: ${name}`);
     }
@@ -1566,11 +1686,8 @@
       userPins.jawan = jPin;
       userPins.fajr = fPin;
 
-      try {
-        localStorage.setItem(STORAGE_KEY_PINS, JSON.stringify(userPins));
-      } catch (e) {}
-
-      showToast('✅ تم حفظ كلمات المرور والرموز الجديدة بنجاح');
+      pushCloudState();
+      showToast('✅ تم حفظ كلمات المرور والمزامنة سحابياً');
     }
 
     function saveTeacherNote() {
@@ -1578,10 +1695,8 @@
       if (!text) return;
       teacherNote = text;
       document.getElementById('teacherNoteText').innerText = teacherNote;
-      try {
-        localStorage.setItem(STORAGE_KEY_NOTE, teacherNote);
-      } catch (e) {}
-      showToast('✅ تم تحديث توجيه الأستاذ وظهوره في الصفحة');
+      pushCloudState();
+      showToast('✅ تم تحديث ونشر توجيه الأستاذ للجميع');
     }
 
     function openEditModal(index) {
@@ -1607,14 +1722,16 @@
       currentSchedule[editingDayIndex].verbal = document.getElementById('editDayVerbal').value.trim();
       currentSchedule[editingDayIndex].task = document.getElementById('editDayTask').value.trim();
 
-      saveScheduleState();
+      pushCloudState();
       closeEditModal();
-      showToast('✅ تم حفظ تعديلات اليوم في الجدول');
+      renderScheduleTable();
+      showToast('✅ تم حفظ تعديل اليوم ومزامنته سحابياً');
     }
 
     function restoreDefaultSchedule() {
       currentSchedule = JSON.parse(JSON.stringify(DEFAULT_SCHEDULE));
-      saveScheduleState();
+      pushCloudState();
+      renderScheduleTable();
       showToast('تمت استعادة الجدول الأساسي المعتمد');
     }
 
@@ -1719,12 +1836,33 @@
       document.getElementById('startTimerBtn').innerText = 'بدء الجلسة';
     }
 
+    window.selectStudent = selectStudent;
+    window.toggleQuant = toggleQuant;
+    window.toggleVerbal = toggleVerbal;
+    window.toggleDay = toggleDay;
+    window.switchTab = switchTab;
+    window.printSchedule = printSchedule;
+    window.logoutUser = logoutUser;
+    window.selectLoginAccount = selectLoginAccount;
+    window.autofillPin = autofillPin;
+    window.executeLogin = executeLogin;
+    window.resetCurrentStudentProgress = resetCurrentStudentProgress;
+    window.adminResetStudent = adminResetStudent;
+    window.saveNewPins = saveNewPins;
+    window.saveTeacherNote = saveTeacherNote;
+    window.openEditModal = openEditModal;
+    window.closeEditModal = closeEditModal;
+    window.saveDayChanges = saveDayChanges;
+    window.restoreDefaultSchedule = restoreDefaultSchedule;
+    window.toggleTimer = toggleTimer;
+    window.resetTimer = resetTimer;
+    window.refreshAdminStats = refreshAdminStats;
+
     window.onload = function() {
-      loadSavedState();
       checkAuthSession();
+      renderAll();
+      initCloudDatabase();
     };
   </script>
 </body>
 </html>
-
-```
